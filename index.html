@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d133d">
+  <meta name="description" content="Turn your to-do list into an arcade game with Balloon Darts, Claw Machine, and Prize Wheel.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d133d'/%3E%3Cpath d='M18 15h28v34H18z' fill='%23ffca3a'/%3E%3Cpath d='m24 33 6 6 11-15' fill='none' stroke='%230d133d' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <title>Taskcade — Pick a task. Play it forward.</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#tasks">Skip to task list</a>
+  <div class="page-glow" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="#arcade" aria-label="Taskcade home">
+      <span class="brand-mark">T</span>
+      <span>TASKCADE</span>
+    </a>
+    <div class="header-tools">
+      <div class="scoreboard" aria-label="Task progress">
+        <span><strong id="taskCount">0</strong> READY</span>
+        <span><strong id="doneCount">0</strong> CLEARED</span>
+        <span><strong id="streakCount">0</strong> DAY STREAK</span>
+      </div>
+      <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true" aria-label="Mute game sounds">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path class="speaker-shape" d="M4 9v6h4l5 4V5L8 9H4Z"/><path class="sound-wave" d="M16 8.2a5 5 0 0 1 0 7.6M18.6 5.7a8.5 8.5 0 0 1 0 12.6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="arcade-shell" id="arcade" aria-label="Task arcade">
+      <div class="arcade-heading">
+        <div class="game-tabs" role="tablist" aria-label="Choose an arcade game">
+          <button class="game-tab active" role="tab" aria-selected="true" data-game="balloon"><span>Balloon Darts</span></button>
+          <button class="game-tab" role="tab" aria-selected="false" data-game="claw"><span>Claw Machine</span></button>
+          <button class="game-tab" role="tab" aria-selected="false" data-game="wheel"><span>Prize Wheel</span></button>
+        </div>
+      </div>
+
+      <div class="game-stage" id="gameStage">
+        <button class="help-button" id="helpButton" type="button" aria-label="Open Taskcade directions" aria-haspopup="dialog">?</button>
+        <div id="gameBoard" class="game-board"></div>
+        <div class="empty-game hidden" id="emptyGame">
+          <span class="empty-icon">＋</span>
+          <h2>Load up the arcade</h2>
+          <p>Add a task below, then come back to play.</p>
+          <a href="#tasks" class="button button-primary">Add a task</a>
+        </div>
+      </div>
+
+      <form class="task-form quick-task-form" id="taskForm">
+        <label class="field task-input-wrap">
+          <input id="taskInput" maxlength="90" placeholder="Describe your task…" aria-label="Task description" required autocomplete="off">
+        </label>
+        <label class="field">
+          <select id="difficultyInput" aria-label="Task difficulty" required>
+            <option value="" selected disabled>Choose difficulty</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+        <button class="button button-primary add-button" type="submit"><span>＋</span> Add task</button>
+      </form>
+
+      <div class="result-modal hidden" id="resultCard" role="dialog" aria-modal="true" aria-labelledby="resultTask" aria-hidden="true" tabindex="-1">
+        <div class="result-card">
+          <button class="result-close" id="closeResult" type="button" aria-label="Close chosen task">×</button>
+          <div>
+            <p class="eyebrow">YOUR NEXT MISSION</p>
+            <h2 id="resultTask"></h2>
+            <span class="difficulty-pill" id="resultDifficulty"></span>
+          </div>
+          <div class="result-actions">
+            <button class="button button-ghost" id="rerollBtn">Pick again</button>
+            <button class="button button-success" id="completeBtn">✓ Mark complete</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="task-zone" id="tasks" aria-label="Task lists">
+      <div class="section-heading list-controls">
+        <button class="text-button danger" id="clearTasksBtn">Clear all tasks</button>
+      </div>
+
+      <div class="reward-strip" id="rewardStrip" aria-label="Progress rewards"></div>
+
+      <div class="lists-grid">
+        <div class="list-card">
+          <div class="list-title">
+            <h3>Tasks</h3>
+            <span id="readyBadge" class="count-badge">0</span>
+          </div>
+          <div id="taskList" class="task-list"></div>
+        </div>
+        <div class="list-card completed-card">
+          <div class="list-title">
+            <h3>Completed Tasks</h3>
+            <button class="text-button" id="clearCompletedBtn">Clear completed</button>
+          </div>
+          <div id="completedList" class="task-list completed-list"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="site-guide hidden" id="siteGuide" role="dialog" aria-modal="true" aria-labelledby="siteGuideTitle" aria-hidden="true">
+    <div class="site-guide-card">
+      <button class="guide-close" id="closeGuide" type="button" aria-label="Close directions">×</button>
+      <p class="eyebrow">HOW TO PLAY</p>
+      <h2 id="siteGuideTitle">Turn your list into a game</h2>
+      <div class="guide-flow">
+        <div><strong>1. Load your tasks</strong><span>Add what you need to do and choose a difficulty.</span></div>
+        <div><strong>2. Pick a game</strong><span>Every balloon, capsule, and wheel slice represents one task.</span></div>
+        <div><strong>3. Finish the mission</strong><span>Mark the chosen task complete to move it to Completed Tasks.</span></div>
+      </div>
+      <div class="guide-games">
+        <div><strong>Balloon Darts</strong><span>Pull the dart down, aim, and release to pop a balloon.</span></div>
+        <div><strong>Claw Machine</strong><span>Drag the joystick or use the arrow buttons, line up a capsule, then press DROP.</span></div>
+        <div><strong>Prize Wheel</strong><span>Spin the wheel and take the task under the pointer.</span></div>
+      </div>
+      <div class="guide-score-key" aria-label="Daily Run points by difficulty">
+        <span><strong>Easy</strong> +1</span><span><strong>Medium</strong> +2</span><span><strong>Hard</strong> +3</span>
+      </div>
+      <p class="guide-note">Every 6 points raises your Daily Run level and unlocks a five-minute Recharge Pass.</p>
+      <button class="button button-primary" id="dismissGuide" type="button">Start playing</button>
+    </div>
+  </div>
+
+  <div class="break-timer hidden" id="breakTimer" role="dialog" aria-modal="true" aria-labelledby="breakTimerTitle" aria-hidden="true">
+    <div class="break-timer-card">
+      <p class="eyebrow">RECHARGE PASS</p>
+      <h2 id="breakTimerTitle">Take five—you earned it.</h2>
+      <strong id="breakCountdown" aria-live="polite">5:00</strong>
+      <p>Stretch, grab water, or rest your eyes. Your tasks will be waiting.</p>
+      <button class="button button-primary" id="endBreakBtn" type="button">End break early</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
