@@ -283,6 +283,12 @@
       </div>`).join('') : '<div class="empty-list">Finished tasks land here.</div>';
   }
 
+  function promptAddTask() {
+    els.taskForm.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+    els.taskInput.focus({ preventScroll: true });
+    showToast('Add a task below to load the arcade.');
+  }
+
   function renderGame() {
     els.gameStage.className = `game-stage ${state.game}-theme`;
     document.body.classList.remove('theme-balloon', 'theme-claw', 'theme-wheel');
@@ -292,9 +298,11 @@
       tab.classList.toggle('active', active);
       tab.setAttribute('aria-selected', String(active));
     });
-    els.emptyGame.classList.toggle('hidden', state.tasks.length > 0);
+    const hasTasks = state.tasks.length > 0;
+    const playableEmpty = !hasTasks && (state.game === 'balloon' || state.game === 'claw');
+    els.emptyGame.classList.toggle('hidden', hasTasks || playableEmpty);
     els.gameBoard.innerHTML = '';
-    if (!state.tasks.length) return;
+    if (!hasTasks && state.game === 'wheel') return;
     if (state.game === 'balloon') renderBalloons();
     if (state.game === 'claw') renderClaw();
     if (state.game === 'wheel') renderWheel();
@@ -319,6 +327,11 @@
     const cells = [[0,0],[1,1],[3,0],[2,1],[1,0],[3,1],[0,1],[2,0]];
     const seed = shown.reduce((sum, task) => sum + [...task.id].reduce((n, char) => n + char.charCodeAt(0), 0), 0);
     cells.sort((a,b) => ((a[0]*37+a[1]*19+seed)%97)-((b[0]*37+b[1]*19+seed)%97));
+    const decorativeCells = [[0,2],[1,2],[2,2],[3,2],[0.5,0.5],[1.5,1.5],[2.5,0.5],[3.5,1.5]];
+    const decorativeBalloons = decorativeCells.map(([column, row], i) => {
+      const palette = balloonColors[(i + 2) % balloonColors.length];
+      return `<div class="balloon decorative" aria-label="Decorative balloon" data-column="${column}" data-row="${row}" style="--balloon-light:${palette[0]};--balloon-mid:${palette[1]};--balloon-dark:${palette[2]};--drift-x:${(i%2?12:-10)}px;--drift-y:${8+i}px;--drift-back-x:${(i%2?-8:10)}px;--drift-back-y:${-6-i}px"></div>`;
+    }).join('');
     els.gameBoard.innerHTML = `<div class="balloon-scene" aria-label="Balloon dart game">
       <svg class="utah-landscape" viewBox="0 0 1200 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <defs>
@@ -336,8 +349,9 @@
         <path d="M120 267h183l15 64H105Z M927 225h152l18 62H914Z" fill="#f07b3e" opacity=".9"/>
         <path d="M0 480c175-35 328-17 472 22 165 45 312 40 452-3 95-29 187-36 276-14v135H0Z" fill="url(#desertFloor)"/>
         <path d="M0 520c206-26 354-2 512 39 194 50 411 4 688-33v94H0Z" fill="#b4462f" opacity=".72"/>
-        <g fill="#5d2b2d" opacity=".62"><path d="M744 451h9v69h-9zM725 468h24v8h-24zM725 454h8v22h-8zM750 460h8v25h-8z"/><path d="M453 476h7v49h-7zM440 487h17v7h-17zM440 475h7v19h-7z"/></g>
+        <g fill="#173f2b" opacity=".7"><path transform="translate(280 0)" d="M744 451h9v69h-9zM725 468h24v8h-24zM725 454h8v22h-8zM750 460h8v25h-8z"/><path d="M453 476h7v49h-7zM440 487h17v7h-17zM440 475h7v19h-7z"/></g>
       </svg>
+      ${decorativeBalloons}
       ${shown.map((task, i) => {
         const [column,row] = cells[i];
         const palette = balloonColors[i % balloonColors.length];
@@ -368,6 +382,10 @@
       vy: (index % 3 ? 1 : -1) * (17 + (index * 7) % 15),
       turnAt: performance.now() + 900 + Math.random() * 2100
     }));
+    movers.forEach(mover => {
+      mover.targetVx = mover.vx;
+      mover.targetVy = mover.vy;
+    });
 
     const place = () => {
       const width = scene.clientWidth;
@@ -376,9 +394,9 @@
       movers.forEach((mover, index) => {
         const rect = mover.element.getBoundingClientRect();
         const columns = 4;
-        const rows = 2;
-        const column = Number(mover.element.dataset.column || index % columns);
-        const row = Number(mover.element.dataset.row || Math.floor(index / columns));
+        const rows = 3;
+        const column = Math.min(columns - 0.01, Number(mover.element.dataset.column || index % columns));
+        const row = Math.min(rows - 0.01, Number(mover.element.dataset.row || Math.floor(index / columns) % rows));
         mover.x = 14 + column * ((width - rect.width - 28) / Math.max(1, columns - 1));
         mover.y = 16 + row * ((usableHeight - rect.height - 16) / Math.max(1, rows - 1));
       });
@@ -397,18 +415,27 @@
         const balloonHeight = mover.element.offsetHeight;
         const minX = 10, maxX = Math.max(minX, width - balloonWidth - 10);
         const footerHeight = footer?.offsetHeight || 0;
-        const minY = 10, maxY = Math.max(minY, height - balloonHeight - footerHeight - 24);
+        const minY = 10, maxY = Math.max(minY, height - balloonHeight - footerHeight - 54);
         if (now >= mover.turnAt) {
           const angle = Math.random() * Math.PI * 2;
           const speed = 27 + Math.random() * 24;
-          mover.vx = mover.vx * .48 + Math.cos(angle) * speed;
-          mover.vy = mover.vy * .48 + Math.sin(angle) * speed;
+          mover.targetVx = Math.cos(angle) * speed;
+          mover.targetVy = Math.sin(angle) * speed;
           mover.turnAt = now + 1700 + Math.random() * 3200;
         }
+        const acceleration = 18 * dt;
+        mover.vx += Math.max(-acceleration, Math.min(acceleration, mover.targetVx - mover.vx));
+        mover.vy += Math.max(-acceleration, Math.min(acceleration, mover.targetVy - mover.vy));
         mover.x += mover.vx * dt;
         mover.y += mover.vy * dt;
-        if (mover.x <= minX || mover.x >= maxX) { mover.x = Math.max(minX, Math.min(maxX, mover.x)); mover.vx *= -1; }
-        if (mover.y <= minY || mover.y >= maxY) { mover.y = Math.max(minY, Math.min(maxY, mover.y)); mover.vy *= -1; }
+        if (mover.x <= minX || mover.x >= maxX) {
+          mover.x = Math.max(minX, Math.min(maxX, mover.x));
+          mover.targetVx = mover.x <= minX ? Math.abs(mover.targetVx) : -Math.abs(mover.targetVx);
+        }
+        if (mover.y <= minY || mover.y >= maxY) {
+          mover.y = Math.max(minY, Math.min(maxY, mover.y));
+          mover.targetVy = mover.y <= minY ? Math.abs(mover.targetVy) : -Math.abs(mover.targetVy);
+        }
         mover.element.style.transform = `translate3d(${mover.x}px,${mover.y}px,0) rotate(${Math.sin(now / 850 + index) * 2.2}deg)`;
       });
 
@@ -422,11 +449,19 @@
           const safeX = (aw + bw) * .52;
           const safeY = (ah + bh) * .48;
           if (Math.abs(dx) < safeX && Math.abs(dy) < safeY) {
-            const pushX = (safeX - Math.abs(dx)) * .08 * (dx < 0 ? -1 : 1);
-            const pushY = (safeY - Math.abs(dy)) * .08 * (dy < 0 ? -1 : 1);
-            a.x += pushX; b.x -= pushX; a.y += pushY; b.y -= pushY;
-            [a.vx,b.vx] = [b.vx,a.vx];
-            [a.vy,b.vy] = [b.vy,a.vy];
+            const distance = Math.hypot(dx,dy) || 1;
+            const separation = 8;
+            const forceX = dx / distance * separation;
+            const forceY = dy / distance * separation;
+            a.targetVx += forceX; b.targetVx -= forceX;
+            a.targetVy += forceY; b.targetVy -= forceY;
+            [a,b].forEach(mover => {
+              const speed = Math.hypot(mover.targetVx,mover.targetVy);
+              if (speed > 56) {
+                mover.targetVx = mover.targetVx / speed * 56;
+                mover.targetVy = mover.targetVy / speed * 56;
+              }
+            });
           }
         }
       }
@@ -511,7 +546,13 @@
           burstBalloon(hit, scene);
           playSound('pop');
           cancelAnimationFrame(frame);
-          setTimeout(() => { setSelected(hit.dataset.balloon); state.busy = false; resetDart(); }, 250);
+          setTimeout(() => {
+            const chosen = randomTask();
+            if (chosen) setSelected(chosen.id);
+            else promptAddTask();
+            state.busy = false;
+            resetDart();
+          }, 250);
           return;
         }
         const sceneRect = scene.getBoundingClientRect();
@@ -549,10 +590,11 @@
   function renderClaw() {
     const prizeLayout = [
       [2,4,-11,'capsule'],[13,28,7,'star'],[24,2,-5,'block'],[35,30,13,'capsule'],[46,5,-8,'star'],[57,27,5,'block'],[68,2,-14,'capsule'],[79,28,9,'star'],[90,5,-6,'block'],
-      [7,58,12,'star'],[18,51,-9,'capsule'],[30,61,6,'block'],[42,50,-13,'capsule'],[54,63,10,'star'],[66,53,-4,'block'],[77,62,14,'capsule'],[87,51,-8,'star'],[95,60,5,'capsule']
+      [7,58,12,'star'],[18,51,-9,'capsule'],[30,61,6,'block'],[42,50,-13,'capsule'],[54,63,10,'star'],[66,53,-4,'block'],[77,62,14,'capsule'],[87,51,-8,'star'],[95,60,5,'capsule'],
+      [1,89,8,'block'],[11,94,-12,'capsule'],[22,86,14,'star'],[33,96,-7,'block'],[45,87,10,'capsule'],[56,96,-14,'star'],[68,88,6,'block'],[79,97,-9,'capsule'],[90,87,12,'star'],[38,71,4,'star'],[61,74,-6,'capsule']
     ];
     els.gameBoard.innerHTML = `<div class="claw-scene" aria-label="Claw machine game">
-      <div class="claw-cabinet"><div class="cabinet-back" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="cabinet-ceiling" aria-hidden="true"></div><div class="cabinet-side left" aria-hidden="true"></div><div class="cabinet-side right" aria-hidden="true"></div><div class="cabinet-floor" aria-hidden="true"></div><div class="glass-shine" aria-hidden="true"></div><div class="claw-track"></div><div class="claw" id="claw" style="left:${state.clawX}%"><div class="cable"></div><div class="claw-head"><i></i><i></i></div><i class="claw-prong left"></i><i class="claw-prong right"></i></div>
+      <div class="claw-cabinet"><div class="cabinet-back" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="cabinet-ceiling" aria-hidden="true"></div><div class="cabinet-side left" aria-hidden="true"></div><div class="cabinet-side right" aria-hidden="true"></div><div class="cabinet-floor" aria-hidden="true"></div><div class="glass-shine" aria-hidden="true"></div><div class="claw-track"></div><div class="claw" id="claw" style="left:${state.clawX}%"><div class="cable"></div><div class="claw-head"></div><i class="claw-prong left"></i><i class="claw-prong right"></i></div>
       <div class="balls-bin">${prizeLayout.map((item,i) => `<div class="prize-item ${item[3]}" data-prize="${i}" aria-label="Arcade prize" style="--prize-left:${item[0]}%;--prize-bottom:${item[1]}px;--prize-rotation:${item[2]}deg"></div>`).join('')}</div></div>
       <div class="claw-controls"><div class="control-deck">
         <button class="control-button move" data-move="-3" aria-label="Move claw left"><span>◀</span></button>
@@ -562,8 +604,25 @@
       </div></div>
     </div>`;
     els.gameBoard.querySelectorAll('[data-move]').forEach(btn => btn.addEventListener('click', () => moveClaw(Number(btn.dataset.move))));
+    setupPrizeGleam();
     setupClawJoystick();
     $('#dropClaw').addEventListener('click', dropClaw);
+  }
+
+  function setupPrizeGleam() {
+    const cabinet = els.gameBoard.querySelector('.claw-cabinet');
+    if (!cabinet) return;
+    const shimmer = () => {
+      if (!cabinet.isConnected) return;
+      const prizes = [...cabinet.querySelectorAll('.prize-item:not(.grabbed):not(.won)')];
+      const prize = prizes[Math.floor(Math.random() * prizes.length)];
+      if (prize) {
+        prize.classList.add('gleam');
+        setTimeout(() => prize.classList.remove('gleam'), 950);
+      }
+      setTimeout(shimmer, 1500 + Math.random() * 2400);
+    };
+    setTimeout(shimmer, 700 + Math.random() * 1000);
   }
 
   function setClawPosition(value) {
@@ -627,38 +686,59 @@
     state.busy = true;
     playSound('grab');
     const claw = $('#claw');
-    claw.classList.add('dropping');
+    claw.classList.add('dropping','opening');
     const prizes = [...els.gameBoard.querySelectorAll('[data-prize]')];
     let hit = null;
     let wonTask = null;
     setTimeout(() => {
+      claw.classList.remove('opening');
       claw.classList.add('closing');
-      const clawRect = claw.getBoundingClientRect();
-      const clawCenter = clawRect.left + clawRect.width / 2;
-      hit = prizes.filter(prize => { const r = prize.getBoundingClientRect(); return clawCenter >= r.left - 3 && clawCenter <= r.right + 3; })
-        .sort((a,b) => Math.abs((a.getBoundingClientRect().left + a.getBoundingClientRect().width/2) - clawCenter) - Math.abs((b.getBoundingClientRect().left + b.getBoundingClientRect().width/2) - clawCenter))[0] || null;
+    }, 610);
+    setTimeout(() => {
+      const leftProng = claw.querySelector('.claw-prong.left').getBoundingClientRect();
+      const rightProng = claw.querySelector('.claw-prong.right').getBoundingClientRect();
+      const leftTip = leftProng.right - 4;
+      const rightTip = rightProng.left + 4;
+      const gripLeft = Math.min(leftTip, rightTip) - 16;
+      const gripRight = Math.max(leftTip, rightTip) + 16;
+      const tipY = Math.max(leftProng.bottom, rightProng.bottom);
+      const gripTop = tipY - 32;
+      const gripBottom = tipY + 12;
+      const gripCenter = (gripLeft + gripRight) / 2;
+      hit = prizes.filter(prize => {
+        const r = prize.getBoundingClientRect();
+        return r.right >= gripLeft && r.left <= gripRight && r.bottom >= gripTop && r.top <= gripBottom;
+      }).sort((a,b) => {
+        const aRect = a.getBoundingClientRect();
+        const bRect = b.getBoundingClientRect();
+        return Math.abs((aRect.left + aRect.width / 2) - gripCenter) - Math.abs((bRect.left + bRect.width / 2) - gripCenter);
+      })[0] || null;
       if (hit) {
         const hitRect = hit.getBoundingClientRect();
-        hit.style.setProperty('--grab-x', `${clawCenter - (hitRect.left + hitRect.width / 2)}px`);
+        hit.style.setProperty('--grab-x', `${gripCenter - (hitRect.left + hitRect.width / 2)}px`);
         hit.style.setProperty('--lift-y', `${-(Math.max(0, $('.claw .cable').getBoundingClientRect().height - 88))}px`);
         hit.classList.add('grabbed');
-        if (Math.random() < .72) wonTask = randomTask();
+        if (state.tasks.length && Math.random() < .58) wonTask = randomTask();
       }
-    }, 610);
-    setTimeout(() => { claw.classList.remove('dropping'); hit?.classList.add('lifting'); }, 900);
+    }, 820);
+    setTimeout(() => { claw.classList.remove('dropping'); hit?.classList.add('lifting'); }, 980);
     setTimeout(() => {
-      if (hit && !wonTask) {
+      if (hit && !wonTask && state.tasks.length) {
         hit.classList.add('slipping');
         playSound('miss');
       }
-    }, 1240);
+    }, 1320);
     setTimeout(() => {
-      claw.classList.remove('closing');
+      claw.classList.remove('closing','opening','dropping');
       state.busy = false;
-      if (hit && wonTask) { hit.classList.add('won'); playSound('win'); setSelected(wonTask.id); }
+      if (hit && !state.tasks.length) {
+        hit.classList.remove('grabbed','lifting','slipping');
+        playSound('click');
+        promptAddTask();
+      } else if (hit && wonTask) { hit.classList.add('won'); playSound('win'); setSelected(wonTask.id); }
       else if (hit) { hit.classList.remove('grabbed','lifting','slipping'); showToast('It slipped! Line up and try another drop.'); }
       else { playSound('miss'); showMissImpact(); showToast('No prize — line up over an object and try again!'); }
-    }, 2240);
+    }, 2320);
   }
 
   function renderWheel() {
@@ -667,7 +747,7 @@
     const gradient = shown.map((_, i) => `${colors[i % colors.length]} ${i * step}deg ${(i + 1) * step}deg`).join(',');
     els.gameBoard.innerHTML = `<div class="wheel-scene" aria-label="Prize wheel game">
       <div class="stage-room" aria-hidden="true"><i class="stage-back"></i><i class="stage-ceiling"></i><i class="stage-side left"></i><i class="stage-side right"></i><i class="stage-floor"></i></div>
-      <div class="wheel-wrap"><div class="wheel-pointer" id="wheelPointer"></div><div class="wheel" id="wheel" style="background:conic-gradient(${gradient});transform:rotate(${state.wheelRotation}deg)"><div class="wheel-pegs" aria-hidden="true">${Array.from({length:20},(_,i)=>`<i style="--peg:${i*18}deg"></i>`).join('')}</div>
+      <div class="wheel-wrap"><div class="wheel-pointer" id="wheelPointer"></div><div class="wheel" id="wheel" style="background:conic-gradient(${gradient});transform:rotate(${state.wheelRotation}deg)"><div class="wheel-pegs" aria-hidden="true">${Array.from({length:20},(_,i)=>`<i style="--peg:${i*18}deg;--bulb-delay:${(-i*.065).toFixed(3)}s"></i>`).join('')}</div>
         ${shown.map((t,i) => { const a=i*step+step/2, rad=a*Math.PI/180, left=50+29*Math.sin(rad), top=50-29*Math.cos(rad); let rotation=a-90; if(rotation>90) rotation-=180; if(rotation<-90) rotation+=180; return `<span class="wheel-label" style="left:${left}%;top:${top}%;transform:translate(-50%,-50%) rotate(${rotation}deg)">${escapeHtml(t.text)}</span>`; }).join('')}
       </div></div>
       <div class="wheel-panel"><button class="button button-primary spin-button" id="spinWheel">SPIN THE WHEEL</button></div>
@@ -751,13 +831,16 @@
     const confettiCount = Math.min(74, 34 + Math.floor((state.stats.dailyPoints || 0) / 6) * 8);
     for (let i = 0; i < confettiCount; i++) {
       const piece = document.createElement('i');
-      piece.className = 'confetti';
+      piece.className = `confetti confetti-${state.game}`;
+      const drift = Math.round((Math.random() - .5) * 260);
       piece.style.left = `${Math.random() * 100}vw`;
-      piece.style.background = colors[i % colors.length];
+      piece.style.setProperty('--confetti-color', colors[i % colors.length]);
+      piece.style.setProperty('--confetti-size', `${12 + Math.random() * 14}px`);
+      piece.style.setProperty('--drift', `${drift}px`);
       piece.style.animationDelay = `${Math.random() * .3}s`;
-      piece.style.transform = `rotate(${Math.random() * 180}deg)`;
+      piece.style.setProperty('--start-rotation', `${Math.random() * 180}deg`);
       document.body.appendChild(piece);
-      setTimeout(() => piece.remove(), 1900);
+      setTimeout(() => piece.remove(), state.game === 'balloon' ? 2500 : 2100);
     }
   }
 
