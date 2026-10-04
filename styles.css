@@ -257,6 +257,8 @@ h1 { margin-bottom: 0; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: .98; 
 .daily-run-copy { display:grid; line-height:1.15; }
 .daily-run-copy span { color:var(--muted); font-size:.68rem; font-weight:900; letter-spacing:.13em; }
 .daily-run-copy strong { font-size:.9rem; }
+.daily-run-copy small { margin-top:3px; color:var(--muted); font-size:.66rem; font-weight:750; line-height:1.2; }
+.run-champion .daily-run-copy small { color:#9a5b12; }
 .list-controls { justify-content:flex-end; margin-bottom:8px; }
 .daily-progress { height:10px; overflow:hidden; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.62); }
 .daily-progress i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--purple),var(--pink)); transition:width .35s ease; }
@@ -272,7 +274,7 @@ h1 { margin-bottom: 0; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: .98; 
 .break-timer-card p:not(.eyebrow) { max-width:390px; margin:0 auto 22px; color:#dce3ff; }
 .run-powered .brand-mark { box-shadow:3px 3px 0 var(--pink),0 0 18px rgba(255,218,83,.72); }
 .run-powered .daily-progress i { background:linear-gradient(90deg,#6b5de4,#ff4d8d,#ffcc3c); }
-.run-champion .topbar::after { content:"✦  DAILY CHAMPION  ✦"; position:absolute; z-index:-1; left:50%; bottom:-18px; transform:translateX(-50%); padding:2px 15px; border-radius:0 0 9px 9px; color:#563115; background:#ffd85c; font-size:.66rem; font-weight:950; letter-spacing:.13em; box-shadow:0 4px 10px rgba(0,0,0,.18); }
+.run-champion .topbar::after { content:"✦  DAILY CHAMPION  ✦"; position:absolute; z-index:2; left:50%; top:100%; bottom:auto; transform:translateX(-50%); padding:2px 15px; border-radius:0 0 9px 9px; color:#563115; background:#ffd85c; font-size:.66rem; font-weight:950; letter-spacing:.13em; box-shadow:0 4px 10px rgba(0,0,0,.18); }
 .game-stage.miss-impact { animation:cabinetMiss .25s ease-out; }
 
 @keyframes float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-12px) rotate(2deg); } }
@@ -349,6 +351,32 @@ body.theme-wheel { --line:#e0b5a5; --muted:#775568; background:#fff0d3; }
 
 
 .task-list { gap:0; }
+.theme-balloon { --paper-scroll-thumb:#a9492e; --paper-scroll-track:#efd39f; }
+.theme-claw { --paper-scroll-thumb:#6575d5; --paper-scroll-track:#dfe5ff; }
+.theme-wheel { --paper-scroll-thumb:#b32352; --paper-scroll-track:#f0d29a; }
+.task-list.is-scrollable {
+  max-height:448px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:var(--paper-scroll-thumb) var(--paper-scroll-track);
+}
+.task-list.is-scrollable::-webkit-scrollbar { width:11px; }
+.task-list.is-scrollable::-webkit-scrollbar-track {
+  margin:5px 0;
+  border:1px solid color-mix(in srgb,var(--paper-scroll-thumb) 24%,transparent);
+  border-radius:999px;
+  background:var(--paper-scroll-track);
+  box-shadow:inset 0 1px 3px rgba(62,42,30,.18);
+}
+.task-list.is-scrollable::-webkit-scrollbar-thumb {
+  min-height:44px;
+  border:2px solid var(--paper-scroll-track);
+  border-radius:999px;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--paper-scroll-thumb) 82%,white),var(--paper-scroll-thumb));
+}
+.task-list.is-scrollable::-webkit-scrollbar-thumb:hover { filter:brightness(1.08); }
 .theme-balloon .list-card, .theme-claw .list-card, .theme-wheel .list-card,
 .theme-balloon .completed-card, .theme-claw .completed-card, .theme-wheel .completed-card {
   position:relative; overflow:hidden; padding:0 20px 20px; background-color:#fffef6;
@@ -497,11 +525,11 @@ body.theme-balloon { --line:#d7a763; --muted:#76502f; background:#ffedc7; }
 .prize-item.capsule { border:1px solid rgba(255,255,255,.82); border-radius:50%; background:linear-gradient(180deg,#ff4c94 0 45%,#fff 46% 54%,#5269c8 55%); }
 .prize-item.star { clip-path:polygon(50% 0,62% 32%,97% 35%,70% 57%,79% 93%,50% 73%,20% 93%,29% 58%,2% 35%,38% 31%); background:linear-gradient(145deg,#ffe555,#ff9e24 58%,#dc4c2b); }
 .prize-item.block { border:1px solid rgba(255,255,255,.72); border-radius:13px; background:linear-gradient(145deg,#5ee8e0,#1a9fce 55%,#4b49b9); }
-.prize-item:nth-child(5n+2).capsule { background:linear-gradient(180deg,#a66dff 0 45%,#fff 46% 54%,#4761c4 55%); }
-.prize-item:nth-child(5n+3).capsule { background:linear-gradient(180deg,#56df69 0 45%,#fff 46% 54%,#2187bd 55%); }
-.prize-item:nth-child(5n+4).star { background:linear-gradient(145deg,#ff78c5,#e83c91 58%,#8f2c96); }
-.prize-item:nth-child(5n).block { background:linear-gradient(145deg,#ffb34b,#f16d32 55%,#c13e58); }
-.prize-item.grabbed { z-index:8; transform:translateX(var(--grab-x,0)) translateY(-5px) scale(.94); }
+.prize-item.tone-1.capsule { background:linear-gradient(180deg,#a66dff 0 45%,#fff 46% 54%,#4761c4 55%); }
+.prize-item.tone-2.capsule { background:linear-gradient(180deg,#56df69 0 45%,#fff 46% 54%,#2187bd 55%); }
+.prize-item.tone-3.star { background:linear-gradient(145deg,#ff78c5,#e83c91 58%,#8f2c96); }
+.prize-item.tone-4.block { background:linear-gradient(145deg,#ffb34b,#f16d32 55%,#c13e58); }
+.prize-item.grabbed { z-index:8; transform:translateX(var(--grab-x,0)) rotate(var(--prize-rotation,0deg)) scale(.94); }
 .prize-item.grabbed.lifting { transform:translateX(var(--grab-x,0)) translateY(var(--lift-y,-220px)) scale(.82); transition:transform .62s ease; }
 .prize-item.grabbed.lifting.slipping { animation:prizeSlip .55s cubic-bezier(.3,.05,.8,.45) forwards; }
 .prize-item.won { opacity:0; }
@@ -913,10 +941,10 @@ body.theme-wheel { --line:#e9af78; --muted:#704b5b; background:#fff0c4; }
 .prize-item.capsule { background:linear-gradient(180deg,#ff7fba 0 18%,#b61f68 43%,#f3f7ff 44% 54%,#8296e5 55% 70%,#2b3b8e 100%); }
 .prize-item.block { background:linear-gradient(145deg,#d9ffff 0 8%,#49dce1 24%,#1478b7 54%,#6551cd 78%,#25205f 100%); }
 .prize-item.star { background:linear-gradient(145deg,#fff7ad 0 8%,#ffd744 24%,#f19b23 58%,#a93238 100%); }
-.prize-item:nth-child(5n+2).capsule { background:linear-gradient(180deg,#d7b2ff 0 18%,#7c40cf 43%,#fff 44% 54%,#8094df 55% 70%,#29367d 100%); }
-.prize-item:nth-child(5n+3).capsule { background:linear-gradient(180deg,#b8ffbd 0 18%,#2daa58 43%,#fff 44% 54%,#55a9d7 55% 70%,#205079 100%); }
-.prize-item:nth-child(5n+4).star { background:linear-gradient(145deg,#ffd3f0 0 8%,#f366bb 25%,#c02882 60%,#65236f 100%); }
-.prize-item:nth-child(5n).block { background:linear-gradient(145deg,#fff0b0 0 8%,#ffb649 24%,#e65b32 58%,#852d59 100%); }
+.prize-item.tone-1.capsule { background:linear-gradient(180deg,#d7b2ff 0 18%,#7c40cf 43%,#fff 44% 54%,#8094df 55% 70%,#29367d 100%); }
+.prize-item.tone-2.capsule { background:linear-gradient(180deg,#b8ffbd 0 18%,#2daa58 43%,#fff 44% 54%,#55a9d7 55% 70%,#205079 100%); }
+.prize-item.tone-3.star { background:linear-gradient(145deg,#ffd3f0 0 8%,#f366bb 25%,#c02882 60%,#65236f 100%); }
+.prize-item.tone-4.block { background:linear-gradient(145deg,#fff0b0 0 8%,#ffb649 24%,#e65b32 58%,#852d59 100%); }
 
 .balloon {
   border:2px solid color-mix(in srgb,var(--balloon-dark) 84%,#24101b);
@@ -1314,12 +1342,12 @@ body.theme-balloon {
 
 /* Seat lifted prizes within the curved prongs, clear of the claw head. */
 .prize-item.grabbed.lifting {
-  transform:translateX(var(--grab-x,0)) translateY(calc(var(--lift-y,-220px) + 20px)) scale(.82);
+  transform:translateX(var(--grab-x,0)) translateY(var(--lift-y,-220px)) scale(.82);
 }
 @keyframes prizeSlipSmooth {
-  0% { transform:translateX(var(--grab-x,0)) translateY(calc(var(--lift-y,-220px) + 20px)) rotate(0) scale(.82); }
-  16% { transform:translateX(calc(var(--grab-x,0) + 5px)) translateY(calc(var(--lift-y,-220px) + 22px)) rotate(9deg) scale(.82); }
-  35% { transform:translateX(calc(var(--grab-x,0) + 16px)) translateY(calc(var(--lift-y,-220px) + 55px)) rotate(31deg) scale(.86); }
+  0% { transform:translateX(var(--grab-x,0)) translateY(var(--lift-y,-220px)) rotate(0) scale(.82); }
+  16% { transform:translateX(calc(var(--grab-x,0) + 5px)) translateY(calc(var(--lift-y,-220px) + 2px)) rotate(9deg) scale(.82); }
+  35% { transform:translateX(calc(var(--grab-x,0) + 16px)) translateY(calc(var(--lift-y,-220px) + 35px)) rotate(31deg) scale(.86); }
   72% { transform:translateX(calc(var(--grab-x,0) + 27px)) translateY(8px) rotate(72deg) scale(.93); }
   88% { transform:translateX(12px) translateY(-7px) rotate(84deg) scale(.96); }
   100% { transform:translateX(0) translateY(0) rotate(var(--prize-rotation,0deg)) scale(1); }

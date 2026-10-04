@@ -16,6 +16,7 @@
     clawX: 50,
     wheelRotation: 0,
     busy: false,
+    clawDepleted: Array.isArray(saved?.clawDepleted) ? saved.clawDepleted : [],
     recentPicks: Array.isArray(saved?.recentPicks) ? saved.recentPicks : [],
     pickCounts: saved?.pickCounts || {},
     guideSeen: saved?.guideSeen === true,
@@ -44,11 +45,12 @@
   ];
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const escapeHtml = (text) => String(text).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, completed: state.completed, game: state.game, recentPicks: state.recentPicks, pickCounts: state.pickCounts, guideSeen: state.guideSeen, soundEnabled: state.soundEnabled, stats: state.stats }));
+  const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, completed: state.completed, game: state.game, clawDepleted: state.clawDepleted, recentPicks: state.recentPicks, pickCounts: state.pickCounts, guideSeen: state.guideSeen, soundEnabled: state.soundEnabled, stats: state.stats }));
   const getSelected = () => state.tasks.find(t => t.id === state.selectedId);
   let audioContext;
   let breakTimerInterval;
   let lastRewardPoints = null;
+  let heldClawPrize = null;
 
   function showToast(message) {
     els.toast.textContent = message;
@@ -141,7 +143,7 @@
     return fairest[Math.floor(Math.random() * fairest.length)];
   }
 
-  function render() {
+  function render({ preserveGame = false } = {}) {
     syncDailyStats();
     save();
     els.taskCount.textContent = state.tasks.length;
@@ -153,7 +155,7 @@
     els.soundToggle.setAttribute('aria-label', state.soundEnabled ? 'Mute game sounds' : 'Turn on game sounds');
     renderRewards();
     renderLists();
-    renderGame();
+    if (!preserveGame) renderGame();
     if (!getSelected()) hideResult();
   }
 
@@ -192,9 +194,10 @@
     const previousProgress = previousPoints === null ? progress : previousPoints % levelSize;
     const previousPercent = (previousProgress / levelSize) * 100;
     const passes = Math.max(0, levelsCleared - (state.stats.dailyBreaksClaimed || 0));
+    const championUnlocked = levelsCleared >= 3;
     document.body.classList.toggle('run-powered', levelsCleared >= 1);
-    document.body.classList.toggle('run-champion', levelsCleared >= 3);
-    els.rewardStrip.innerHTML = `<div class="daily-run-copy"><span>DAILY RUN · LEVEL ${levelsCleared + 1}</span><strong>${dailyPoints} points · ${dailyTasks} ${dailyTasks === 1 ? 'task' : 'tasks'} today</strong></div>
+    document.body.classList.toggle('run-champion', championUnlocked);
+    els.rewardStrip.innerHTML = `<div class="daily-run-copy"><span>DAILY RUN · LEVEL ${levelsCleared + 1}</span><strong>${dailyPoints} points · ${dailyTasks} ${dailyTasks === 1 ? 'task' : 'tasks'} today</strong><small>${championUnlocked ? 'Daily Champion is active for the rest of today' : `Daily Champion unlocks at 18 points (${18 - dailyPoints} to go)`}</small></div>
       <div class="daily-progress" role="progressbar" aria-label="Daily Run points toward the next level" aria-valuemin="0" aria-valuemax="${levelSize}" aria-valuenow="${progress}"><i style="width:${previousPercent}%"></i></div>
       <span class="reward-badge unlocked">${passes} Recharge ${passes === 1 ? 'Pass' : 'Passes'}</span>
       <span class="reward-badge">Next pass in ${nextTarget - dailyPoints} pts</span>
@@ -281,6 +284,9 @@
         <div><div class="task-name">${escapeHtml(task.text)}</div><div class="task-meta"><span class="mini-difficulty">${task.difficulty}</span></div></div>
         <button class="icon-button" data-restore="${task.id}" title="Restore task" aria-label="Restore ${escapeHtml(task.text)}">↶</button>
       </div>`).join('') : '<div class="empty-list">Finished tasks land here.</div>';
+
+    els.taskList.classList.toggle('is-scrollable', state.tasks.length > 7);
+    els.completedList.classList.toggle('is-scrollable', state.completed.length > 7);
   }
 
   function promptAddTask() {
@@ -595,7 +601,7 @@
     ];
     els.gameBoard.innerHTML = `<div class="claw-scene" aria-label="Claw machine game">
       <div class="claw-cabinet"><div class="cabinet-back" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="cabinet-ceiling" aria-hidden="true"></div><div class="cabinet-side left" aria-hidden="true"></div><div class="cabinet-side right" aria-hidden="true"></div><div class="cabinet-floor" aria-hidden="true"></div><div class="glass-shine" aria-hidden="true"></div><div class="claw-track"></div><div class="claw" id="claw" style="left:${state.clawX}%"><div class="cable"></div><div class="claw-head"></div><i class="claw-prong left"></i><i class="claw-prong right"></i></div>
-      <div class="balls-bin">${prizeLayout.map((item,i) => `<div class="prize-item ${item[3]}" data-prize="${i}" aria-label="Arcade prize" style="--prize-left:${item[0]}%;--prize-bottom:${item[1]}px;--prize-rotation:${item[2]}deg"></div>`).join('')}</div></div>
+      <div class="balls-bin">${prizeLayout.map((item,i) => state.clawDepleted.includes(i) ? '' : `<div class="prize-item ${item[3]} tone-${i % 5}" data-prize="${i}" aria-label="Arcade prize" style="--prize-left:${item[0]}%;--prize-bottom:${item[1]}px;--prize-rotation:${item[2]}deg"></div>`).join('')}</div></div>
       <div class="claw-controls"><div class="control-deck">
         <button class="control-button move" data-move="-3" aria-label="Move claw left"><span>◀</span></button>
         <div class="joystick" id="clawJoystick" role="slider" tabindex="0" aria-label="Move claw" aria-orientation="horizontal" aria-valuemin="8" aria-valuemax="92" aria-valuenow="${Math.round(state.clawX)}"><i></i><b></b></div>
@@ -623,6 +629,21 @@
       setTimeout(shimmer, 1500 + Math.random() * 2400);
     };
     setTimeout(shimmer, 700 + Math.random() * 1000);
+  }
+
+  function replenishClawPrizes(amount = 3) {
+    if (!state.clawDepleted.length) return;
+    state.clawDepleted.splice(0, Math.min(amount, state.clawDepleted.length));
+  }
+
+  function releaseHeldClawPrize() {
+    if (!heldClawPrize) return;
+    const { element } = heldClawPrize;
+    element.classList.remove('grabbed', 'lifting', 'slipping', 'won');
+    element.style.removeProperty('--grab-x');
+    element.style.removeProperty('--lift-y');
+    $('#claw')?.classList.remove('closing');
+    heldClawPrize = null;
   }
 
   function setClawPosition(value) {
@@ -687,7 +708,7 @@
     playSound('grab');
     const claw = $('#claw');
     claw.classList.add('dropping','opening');
-    const prizes = [...els.gameBoard.querySelectorAll('[data-prize]')];
+    const prizes = [...els.gameBoard.querySelectorAll('[data-prize]:not(.won):not(.grabbed)')];
     let hit = null;
     let wonTask = null;
     setTimeout(() => {
@@ -715,8 +736,13 @@
       })[0] || null;
       if (hit) {
         const hitRect = hit.getBoundingClientRect();
+        const clawRect = claw.getBoundingClientRect();
+        const hitCenterY = hitRect.top + hitRect.height / 2;
+        // The resting target is fixed inside the retracted prongs, so prizes
+        // finish in the same place regardless of how deep in the pile they began.
+        const restingGripCenterY = clawRect.top + 131;
         hit.style.setProperty('--grab-x', `${gripCenter - (hitRect.left + hitRect.width / 2)}px`);
-        hit.style.setProperty('--lift-y', `${-(Math.max(0, $('.claw .cable').getBoundingClientRect().height - 88))}px`);
+        hit.style.setProperty('--lift-y', `${restingGripCenterY - hitCenterY}px`);
         hit.classList.add('grabbed');
         if (state.tasks.length && Math.random() < .58) wonTask = randomTask();
       }
@@ -729,15 +755,20 @@
       }
     }, 1320);
     setTimeout(() => {
-      claw.classList.remove('closing','opening','dropping');
+      claw.classList.remove('opening','dropping');
       state.busy = false;
       if (hit && !state.tasks.length) {
+        claw.classList.remove('closing');
         hit.classList.remove('grabbed','lifting','slipping');
         playSound('click');
         promptAddTask();
-      } else if (hit && wonTask) { hit.classList.add('won'); playSound('win'); setSelected(wonTask.id); }
-      else if (hit) { hit.classList.remove('grabbed','lifting','slipping'); showToast('It slipped! Line up and try another drop.'); }
-      else { playSound('miss'); showMissImpact(); showToast('No prize — line up over an object and try again!'); }
+      } else if (hit && wonTask) {
+        heldClawPrize = { element: hit, prizeIndex: Number(hit.dataset.prize), taskId: wonTask.id };
+        playSound('win');
+        setSelected(wonTask.id);
+      }
+      else if (hit) { claw.classList.remove('closing'); hit.classList.remove('grabbed','lifting','slipping'); showToast('It slipped! Line up and try another drop.'); }
+      else { claw.classList.remove('closing'); playSound('miss'); showMissImpact(); showToast('No prize — line up over an object and try again!'); }
     }, 2320);
   }
 
@@ -820,11 +851,24 @@
     state.stats.dailyPoints = (state.stats.dailyPoints || 0) + earnedPoints;
     const levelAfter = Math.floor((state.stats.dailyPoints || 0) / 6);
     state.completed.unshift({ ...task, completedAt: Date.now() });
+    let preserveGame = false;
+    if (heldClawPrize?.taskId === id) {
+      const { element, prizeIndex } = heldClawPrize;
+      if (!state.clawDepleted.includes(prizeIndex)) state.clawDepleted.push(prizeIndex);
+      element.classList.add('won');
+      preserveGame = state.game === 'claw' && element.isConnected;
+      const heldClaw = $('#claw');
+      setTimeout(() => {
+        element.remove();
+        heldClaw?.classList.remove('closing');
+      }, 280);
+      heldClawPrize = null;
+    }
     hideResult();
     celebrate();
     playSound(levelAfter > levelBefore ? 'unlock' : 'win');
     showToast(levelAfter > levelBefore ? `Level ${levelAfter + 1}! Recharge Pass unlocked.` : `Mission cleared! +${earnedPoints} Daily Run ${earnedPoints === 1 ? 'point' : 'points'}.`);
-    render();
+    render({ preserveGame });
   }
 
   function celebrate() {
@@ -849,6 +893,7 @@
     const text = els.taskInput.value.trim();
     if (!text) return;
     state.tasks.push({ id: crypto.randomUUID(), text, difficulty: els.difficultyInput.value });
+    replenishClawPrizes(3);
     els.taskInput.value = '';
     els.difficultyInput.value = '';
     render();
@@ -859,6 +904,7 @@
 
   document.querySelectorAll('.game-tab').forEach(tab => tab.addEventListener('click', () => {
     if (state.busy) return;
+    releaseHeldClawPrize();
     state.game = tab.dataset.game;
     playSound('click');
     hideResult();
@@ -884,13 +930,14 @@
     const index = state.completed.findIndex(t => t.id === button.dataset.restore);
     const [task] = state.completed.splice(index, 1);
     state.tasks.push({ id: task.id, text: task.text, difficulty: task.difficulty });
+    replenishClawPrizes(3);
     render(); showToast('Task restored to the arcade.');
   });
 
   $('#completeBtn').addEventListener('click', () => state.selectedId && completeTask(state.selectedId));
-  $('#rerollBtn').addEventListener('click', () => { hideResult(); renderGame(); showToast('Ready for another pick!'); });
-  els.closeResult.addEventListener('click', hideResult);
-  els.resultCard.addEventListener('click', event => { if (event.target === els.resultCard) hideResult(); });
+  $('#rerollBtn').addEventListener('click', () => { releaseHeldClawPrize(); hideResult(); renderGame(); showToast('Ready for another pick!'); });
+  els.closeResult.addEventListener('click', () => { releaseHeldClawPrize(); hideResult(); });
+  els.resultCard.addEventListener('click', event => { if (event.target === els.resultCard) { releaseHeldClawPrize(); hideResult(); } });
   $('#clearTasksBtn').addEventListener('click', () => {
     if (!state.tasks.length || !confirm('Remove every active task?')) return;
     state.tasks = []; hideResult(); render(); showToast('Active tasks cleared.');
