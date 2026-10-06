@@ -172,21 +172,35 @@
 
   function setView(view) {
     if (!validViews.includes(view)) return;
+    if (view !== 'tasks' && !state.tasks.length) {
+      state.view = 'tasks';
+      return;
+    }
     state.view = view;
     if (view !== 'tasks') state.game = view;
   }
 
   function renderView() {
+    if (state.view !== 'tasks' && !state.tasks.length) state.view = 'tasks';
     const onTasks = state.view === 'tasks';
     const theme = onTasks ? 'tasks' : state.game;
+    const gamesLocked = state.tasks.length === 0;
     els.arcadeShell.classList.toggle('hidden', onTasks);
     els.taskZone.classList.toggle('hidden', !onTasks);
     document.body.classList.remove('theme-balloon', 'theme-claw', 'theme-wheel', 'theme-tasks');
     document.body.classList.add(`theme-${theme}`);
     document.querySelectorAll('.section-tab').forEach(tab => {
-      const active = tab.dataset.view === state.view;
+      const view = tab.dataset.view;
+      const isGame = view !== 'tasks';
+      const locked = isGame && gamesLocked;
+      const active = view === state.view;
       tab.classList.toggle('active', active);
+      tab.classList.toggle('locked', locked);
+      tab.disabled = locked;
       tab.setAttribute('aria-selected', String(active));
+      tab.setAttribute('aria-disabled', String(locked));
+      if (locked) tab.title = 'Add a task first';
+      else tab.removeAttribute('title');
     });
   }
 
@@ -439,11 +453,10 @@
         return `<div class="balloon" data-balloon="${task.id}" aria-label="Task balloon" data-column="${column}" data-row="${row}" style="--balloon-light:${palette[0]};--balloon-mid:${palette[1]};--balloon-dark:${palette[2]}"></div>`;
       }).join('')}
       <div class="wood-footer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <div class="western-sign">TASK ROUNDUP</div>
       <div class="aim-line" id="aimLine"></div>
       <div class="dart-launcher" id="dartLauncher" role="button" tabindex="0" aria-label="Pull back and release the dart"><div class="dart" id="dart" aria-hidden="true"><span class="dart-tip"></span><span class="dart-barrel"></span><span class="dart-shaft"></span><span class="dart-flight"></span></div></div>
       <div class="dart-hint">Pull the dart down to aim • release to throw</div>
-      <div class="dart-key-controls" aria-label="Keyboard dart controls"><button type="button" data-dart-angle="-8" aria-label="Aim dart left">◀</button><button type="button" id="fireDart">FIRE</button><button type="button" data-dart-angle="8" aria-label="Aim dart right">▶</button></div>
+      <div class="dart-key-controls" aria-label="Dart aim controls"><button type="button" data-dart-angle="-8" aria-label="Aim dart left">◀</button><button type="button" id="fireDart">FIRE</button><button type="button" data-dart-angle="8" aria-label="Aim dart right">▶</button></div>
     </div>`;
     setupBalloonMotion();
     setupDartGame();
@@ -577,12 +590,14 @@
 
     launcher.addEventListener('pointerdown', event => {
       if (state.busy) return;
+      event.preventDefault();
       pulling = true; dragX = 0; dragY = 0;
       scene.classList.add('aiming');
       launcher.setPointerCapture(event.pointerId);
     });
     launcher.addEventListener('pointermove', event => {
       if (!pulling) return;
+      event.preventDefault();
       const rect = launcher.getBoundingClientRect();
       let dx = event.clientX - (rect.left + rect.width / 2);
       let dy = Math.max(0, event.clientY - (rect.top + rect.height / 2));
@@ -638,7 +653,7 @@
         }
         const sceneRect = scene.getBoundingClientRect();
         if (dartRect.bottom < sceneRect.top || dartRect.top > sceneRect.bottom || dartRect.left > sceneRect.right || dartRect.right < sceneRect.left) {
-          state.busy = false; resetDart(); playSound('miss'); showMissImpact(); showToast('So close — pull back and try again!'); return;
+          state.busy = false; resetDart(); playSound('miss'); showMissImpact(); return;
         }
         frame = requestAnimationFrame(fly);
       };
@@ -657,7 +672,6 @@
       scene.classList.add('aiming');
       drawDart(dragX, dragY, keyboardAngle);
       aimLine.style.transform = `rotate(${keyboardAngle}deg)`;
-      showToast(`Aim ${keyboardAngle === 0 ? 'center' : keyboardAngle < 0 ? `${Math.abs(keyboardAngle)}° left` : `${keyboardAngle}° right`}`);
     };
     scene.querySelectorAll('[data-dart-angle]').forEach(button => button.addEventListener('click', () => setKeyboardAim(Number(button.dataset.dartAngle))));
     $('#fireDart').addEventListener('click', () => { if (dragY < 12) setKeyboardAim(0); launchDart(); });
@@ -1016,9 +1030,13 @@
   });
 
   document.querySelectorAll('.section-tab').forEach(tab => tab.addEventListener('click', () => {
-    if (state.busy) return;
+    if (state.busy || tab.disabled) return;
     const view = tab.dataset.view;
     if (view === state.view) return;
+    if (view !== 'tasks' && !state.tasks.length) {
+      showToast('Add a task before choosing a game.');
+      return;
+    }
     releaseHeldClawPrize();
     setView(view);
     playSound('click');

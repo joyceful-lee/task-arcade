@@ -100,7 +100,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .section-tab:last-child { border-right: 0; }
 .section-tab span { display: block; overflow: hidden; text-overflow: ellipsis; }
 .section-tab.active { color: var(--ink); background: var(--yellow); box-shadow: inset 0 -3px rgba(0,0,0,.12); }
-.section-tab:hover:not(.active) { color: white; background: rgba(255,255,255,.08); }
+.section-tab:hover:not(.active):not(:disabled) { color: white; background: rgba(255,255,255,.08); }
+.section-tab:disabled,
+.section-tab.locked {
+  color: rgba(189, 198, 239, .42);
+  cursor: not-allowed;
+  background: rgba(0, 0, 0, .18);
+  opacity: .72;
+}
 .eyebrow { margin: 0 0 3px; color: var(--cyan); font-size: .76rem; font-weight: 900; letter-spacing: .17em; }
 .eyebrow.dark { color: #5b49d4; }
 h1, h2, h3, p { margin-top: 0; }
@@ -141,7 +148,7 @@ h1 { margin-bottom: 0; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: .98; 
 .difficulty-pill.hard { color: #7c173e; background: #ffc0d7; }
 
 .game-stage.balloon-theme { border-color: #d99038; box-shadow: 0 18px 55px rgba(38,18,7,.38), inset 0 0 0 1px rgba(255,255,255,.08); }
-.balloon-scene { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(#ff874d 0 18%, #efa24e 41%, #f7c66a 62%, #de743e 63%); font-family: Rockwell, "Roboto Slab", Georgia, serif; }
+.balloon-scene { position: absolute; inset: 0; overflow: hidden; background: linear-gradient(#ff874d 0 18%, #efa24e 41%, #f7c66a 62%, #de743e 63%); font-family: Rockwell, "Roboto Slab", Georgia, serif; user-select: none; -webkit-user-select: none; }
 .balloon-scene::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg,rgba(92,35,30,.035) 0 2px,transparent 2px 6px); pointer-events:none; }
 .balloon-scene::after { content:""; position:absolute; z-index:1; inset:0; pointer-events:none; background:linear-gradient(180deg,transparent 62%,rgba(73,31,15,.12)); }
 .western-sun { position:absolute; z-index:0; top:25px; right:13%; width:92px; height:92px; border-radius:50%; background:#ffd56b; border:5px solid #d85b3c; box-shadow:0 0 0 9px rgba(255,214,105,.2); }
@@ -163,9 +170,9 @@ h1 { margin-bottom: 0; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: .98; 
 .balloon:nth-of-type(3n+2) { --balloon-light:#b89aff; --balloon-mid:#805ee8; --balloon-dark:#4d2baa; }
 .balloon:nth-of-type(3n) { --balloon-light:#54d9ee; --balloon-mid:#139bc5; --balloon-dark:#08658e; }
 .balloon.popped { animation: pop .25s forwards; }
-.dart-launcher { position: absolute; z-index: 6; left: 50%; bottom: 17px; width: 92px; height: 92px; transform: translateX(-50%); touch-action: none; cursor: grab; }
+.dart-launcher { position: absolute; z-index: 6; left: 50%; bottom: 78px; width: 92px; height: 92px; transform: translateX(-50%); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 .dart-launcher:active { cursor: grabbing; }
-.dart { position:absolute; left:50%; top:50%; width:22px; height:92px; transform:translate(-50%,-50%); transform-origin:center; filter:drop-shadow(2px 4px 2px rgba(20,9,5,.42)); }
+.dart { position:absolute; left:50%; top:50%; width:22px; height:92px; transform:translate(-50%,-50%); transform-origin:center; filter:drop-shadow(2px 4px 2px rgba(20,9,5,.42)); pointer-events:none; }
 .dart-tip { position:absolute; z-index:4; left:5px; top:0; width:12px; height:20px; clip-path:polygon(50% 0,100% 76%,72% 100%,28% 100%,0 76%); background:linear-gradient(90deg,#707782 0 17%,#f8fbff 44%,#a9b0ba 68%,#4e5661 100%); box-shadow:inset 2px 0 rgba(255,255,255,.5); }
 .dart-barrel { position:absolute; z-index:3; left:4px; top:17px; width:14px; height:27px; border:1px solid #70451e; border-radius:4px 4px 7px 7px; background:repeating-linear-gradient(135deg,#e2aa46 0 3px,#8d5725 3px 5px,#f1c66e 5px 7px); box-shadow:inset 2px 0 2px rgba(255,255,255,.48),inset -2px 0 2px rgba(57,29,9,.35); }
 .dart-shaft { position:absolute; z-index:2; left:9px; top:41px; width:4px; height:34px; border-radius:2px; background:linear-gradient(90deg,#28150e,#7b4427 46%,#c07a42 57%,#3c2015); box-shadow:1px 0 rgba(255,224,178,.28); }
@@ -173,11 +180,13 @@ h1 { margin-bottom: 0; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: .98; 
 .dart-flight::before, .dart-flight::after { content:""; position:absolute; top:0; width:11px; height:22px; }
 .dart-flight::before { left:0; clip-path:polygon(100% 0,100% 100%,0 72%,12% 20%); background:linear-gradient(135deg,#ffe073,#d99c22); }
 .dart-flight::after { right:0; clip-path:polygon(0 0,0 100%,100% 72%,88% 20%); background:linear-gradient(225deg,#f66f67,#aa2e35); }
-.aim-line { position: absolute; z-index: 5; left: 50%; bottom: 63px; width: 2px; height: 145px; transform-origin: bottom; background: repeating-linear-gradient(to top, rgba(255,249,211,.95) 0 6px, transparent 6px 15px); opacity: 0; }
+.aim-line { position: absolute; z-index: 5; left: 50%; bottom: 124px; width: 2px; height: 145px; transform-origin: bottom; background: repeating-linear-gradient(to top, rgba(255,249,211,.95) 0 6px, transparent 6px 15px); opacity: 0; pointer-events: none; }
 .balloon-scene.aiming .aim-line { opacity: 1; }
-.dart-hint { position: absolute; z-index: 5; left: 50%; bottom: 6px; transform: translateX(-50%); color: #ffedbd; font-family: Inter, sans-serif; font-size: .75rem; font-weight: 850; white-space: nowrap; }
-.dart-key-controls { position:absolute; z-index:7; right:12px; bottom:10px; display:flex; gap:5px; }
-.dart-key-controls button { min-width:38px; height:34px; border:2px solid #4c291b; border-radius:8px; color:#3f2418; background:#f3cc79; font-weight:950; cursor:pointer; box-shadow:0 3px 0 #643620; }
+.balloon-scene.aiming { cursor: grabbing; }
+.dart-hint { position: absolute; z-index: 5; left: 50%; bottom: 176px; transform: translateX(-50%); color: #ffedbd; font-family: Inter, sans-serif; font-size: .75rem; font-weight: 850; white-space: nowrap; pointer-events: none; }
+.dart-key-controls { position:absolute; z-index:7; left:50%; bottom:12px; transform:translateX(-50%); display:flex; align-items:center; gap:10px; }
+.dart-key-controls button { min-width:52px; height:46px; border:2px solid #4c291b; border-radius:10px; color:#3f2418; background:#f3cc79; font-weight:950; font-size:1.05rem; cursor:pointer; box-shadow:0 4px 0 #643620; }
+.dart-key-controls #fireDart { min-width:108px; background:#ffb437; }
 
 .game-stage.claw-theme { border-color:#23d6ff; box-shadow:0 0 30px rgba(35,214,255,.25),inset 0 0 0 1px rgba(255,255,255,.08); }
 .claw-scene { position:absolute; inset:0; overflow:hidden; background:#090b27; }
@@ -480,7 +489,7 @@ body.theme-tasks { --line:#d4daf5; --muted:#65709b; background:#eef1fb; }
   .task-item { padding:0 8px 0 42px; }
   .scoreboard span:nth-child(3) { display:none; }
   .sound-toggle { width:34px; height:34px; }
-  .dart-key-controls { right:7px; bottom:7px; }
+  .dart-key-controls { left:50%; right:auto; bottom:10px; transform:translateX(-50%); }
   .claw-cabinet { left:0; right:0; }
   .claw-controls { width:94%; }
   .control-deck { gap:6px; padding:7px 12px 10px; }
