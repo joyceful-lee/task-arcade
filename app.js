@@ -408,17 +408,17 @@
     els.taskList.innerHTML = state.tasks.length ? state.tasks.map(task => `
       <div class="task-item" data-id="${task.id}">
         <button class="task-check" data-action="complete" aria-label="Mark ${escapeHtml(task.text)} complete">✓</button>
-        <div><div class="task-name">${escapeHtml(task.text)}</div><div class="task-meta"><span class="mini-difficulty">${task.difficulty}</span></div></div>
+        <div><div class="task-name">${escapeHtml(task.text)}</div><div class="task-meta"><span class="mini-difficulty ${task.difficulty}">${task.difficulty}</span></div></div>
         <div class="task-actions">
           <button class="icon-button" data-action="edit" title="Edit task" aria-label="Edit ${escapeHtml(task.text)}">✎</button>
           <button class="icon-button" data-action="delete" title="Delete task" aria-label="Delete ${escapeHtml(task.text)}">×</button>
         </div>
-      </div>`).join('') : '<div class="empty-list">No tasks yet. Add one above to stock the games.</div>';
+      </div>`).join('') : `<div class="empty-list">No tasks yet. Add one above to stock the games.<button type="button" class="button button-primary empty-suggest" data-suggest-tasks>Suggest some tasks</button></div>`;
 
     els.completedList.innerHTML = state.completed.length ? state.completed.map(task => `
       <div class="task-item">
         <span class="task-check completed-check">✓</span>
-        <div><div class="task-name">${escapeHtml(task.text)}</div><div class="task-meta"><span class="mini-difficulty">${task.difficulty}</span></div></div>
+        <div><div class="task-name">${escapeHtml(task.text)}</div><div class="task-meta"><span class="mini-difficulty ${task.difficulty}">${task.difficulty}</span></div></div>
         <button class="icon-button" data-restore="${task.id}" title="Restore task" aria-label="Restore ${escapeHtml(task.text)}">↶</button>
       </div>`).join('') : '<div class="empty-list">Finished tasks land here.</div>';
 
@@ -433,7 +433,7 @@
     els.setupTaskList.innerHTML = state.tasks.length ? state.tasks.map(task => `
       <div class="task-item" data-id="${task.id}">
         <span class="task-check" aria-hidden="true"></span>
-        <div><div class="task-name">${escapeHtml(task.text)}</div><div class="task-meta"><span class="mini-difficulty">${task.difficulty}</span></div></div>
+        <div><div class="task-name">${escapeHtml(task.text)}</div><div class="task-meta"><span class="mini-difficulty ${task.difficulty}">${task.difficulty}</span></div></div>
         <div class="task-actions">
           <button class="icon-button" data-setup-action="delete" title="Delete task" aria-label="Delete ${escapeHtml(task.text)}">×</button>
         </div>
@@ -462,6 +462,75 @@
     state.tasks.push(task);
     replenishClawPrizes(3);
     return task;
+  }
+
+  function syncDifficultySelect(select) {
+    if (!select) return;
+    const dropdown = select.closest('[data-difficulty-dropdown]');
+    const value = ['easy', 'medium', 'hard'].includes(select.value) ? select.value : 'medium';
+    select.value = value;
+    if (!dropdown) return;
+    const trigger = dropdown.querySelector('.difficulty-trigger');
+    const labels = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+    trigger.textContent = labels[value];
+    trigger.classList.remove('difficulty-easy', 'difficulty-medium', 'difficulty-hard');
+    trigger.classList.add(`difficulty-${value}`);
+    dropdown.querySelectorAll('[role="option"]').forEach(option => {
+      option.setAttribute('aria-selected', String(option.dataset.value === value));
+    });
+  }
+
+  function closeDifficultyMenus(except = null) {
+    document.querySelectorAll('[data-difficulty-dropdown]').forEach(dropdown => {
+      if (dropdown === except) return;
+      const trigger = dropdown.querySelector('.difficulty-trigger');
+      const menu = dropdown.querySelector('.difficulty-menu');
+      trigger.setAttribute('aria-expanded', 'false');
+      menu.hidden = true;
+    });
+  }
+
+  function initDifficultyDropdowns() {
+    document.querySelectorAll('[data-difficulty-dropdown]').forEach(dropdown => {
+      const trigger = dropdown.querySelector('.difficulty-trigger');
+      const menu = dropdown.querySelector('.difficulty-menu');
+      const select = dropdown.querySelector('select');
+      syncDifficultySelect(select);
+      trigger.addEventListener('click', event => {
+        event.preventDefault();
+        const open = trigger.getAttribute('aria-expanded') === 'true';
+        closeDifficultyMenus();
+        if (!open) {
+          trigger.setAttribute('aria-expanded', 'true');
+          menu.hidden = false;
+        }
+      });
+      menu.querySelectorAll('[role="option"]').forEach(option => {
+        option.addEventListener('click', () => {
+          select.value = option.dataset.value;
+          syncDifficultySelect(select);
+          closeDifficultyMenus();
+          trigger.focus();
+        });
+      });
+    });
+    document.addEventListener('click', event => {
+      if (!event.target.closest('[data-difficulty-dropdown]')) closeDifficultyMenus();
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeDifficultyMenus();
+    });
+  }
+
+  function applySuggestedTasks() {
+    const added = suggestStarterTasks();
+    if (!added) {
+      showToast('Suggested tasks are already on your list.');
+      return;
+    }
+    render();
+    playSound('add');
+    showToast('Suggested tasks added.');
   }
 
   function suggestStarterTasks() {
@@ -1441,7 +1510,8 @@
     const text = els.taskInput.value.trim();
     if (!text || !addTask(text, els.difficultyInput.value)) return;
     els.taskInput.value = '';
-    els.difficultyInput.value = '';
+    els.difficultyInput.value = 'medium';
+    syncDifficultySelect(els.difficultyInput);
     render();
     playSound('add');
     showToast('Task added to every game.');
@@ -1453,21 +1523,30 @@
     const text = els.setupTaskInput.value.trim();
     if (!text || !addTask(text, els.setupDifficultyInput.value)) return;
     els.setupTaskInput.value = '';
-    els.setupDifficultyInput.value = '';
+    els.setupDifficultyInput.value = 'medium';
+    syncDifficultySelect(els.setupDifficultyInput);
     render();
     playSound('add');
     els.setupTaskInput.focus();
   });
 
-  els.suggestTasksBtn.addEventListener('click', () => {
-    const added = suggestStarterTasks();
-    if (!added) {
-      showToast('Suggested tasks are already on your list.');
+  els.suggestTasksBtn.addEventListener('click', applySuggestedTasks);
+
+  els.taskList.addEventListener('click', event => {
+    if (event.target.closest('[data-suggest-tasks]')) {
+      applySuggestedTasks();
       return;
     }
-    render();
-    playSound('add');
-    showToast('Suggested tasks added.');
+    const button = event.target.closest('[data-action]');
+    if (!button) return;
+    const id = button.closest('.task-item').dataset.id;
+    const task = state.tasks.find(t => t.id === id);
+    if (button.dataset.action === 'complete') completeTask(id);
+    if (button.dataset.action === 'delete') { state.tasks = state.tasks.filter(t => t.id !== id); render(); showToast('Task removed.'); }
+    if (button.dataset.action === 'edit') {
+      const next = prompt('Edit task', task.text);
+      if (next?.trim()) { task.text = next.trim().slice(0, 90); render(); showToast('Task updated.'); }
+    }
   });
 
   els.finishSetupBtn.addEventListener('click', () => {
@@ -1522,19 +1601,6 @@
     setView('tasks');
     hideResult();
     render();
-  });
-
-  els.taskList.addEventListener('click', event => {
-    const button = event.target.closest('[data-action]');
-    if (!button) return;
-    const id = button.closest('.task-item').dataset.id;
-    const task = state.tasks.find(t => t.id === id);
-    if (button.dataset.action === 'complete') completeTask(id);
-    if (button.dataset.action === 'delete') { state.tasks = state.tasks.filter(t => t.id !== id); render(); showToast('Task removed.'); }
-    if (button.dataset.action === 'edit') {
-      const next = prompt('Edit task', task.text);
-      if (next?.trim()) { task.text = next.trim().slice(0, 90); render(); showToast('Task updated.'); }
-    }
   });
 
   els.completedList.addEventListener('click', event => {
@@ -1603,6 +1669,7 @@
   }
 
   render();
+  initDifficultyDropdowns();
   if (!state.setupSeen) openSetup();
   else {
     if (state.stats.breakEndsAt > Date.now()) openBreakTimer();

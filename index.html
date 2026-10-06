@@ -79,12 +79,20 @@
           <input id="taskInput" maxlength="90" placeholder="Describe your task…" aria-label="Task description" required autocomplete="off">
         </label>
         <label class="field">
-          <select id="difficultyInput" aria-label="Task difficulty" required>
-            <option value="" selected disabled>Choose difficulty</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
+          <span class="visually-hidden">Task difficulty</span>
+          <div class="difficulty-dropdown" data-difficulty-dropdown>
+            <button type="button" class="difficulty-trigger difficulty-medium" aria-haspopup="listbox" aria-expanded="false" aria-label="Task difficulty">Medium</button>
+            <ul class="difficulty-menu" role="listbox" hidden>
+              <li role="option" data-value="easy" class="easy">Easy</li>
+              <li role="option" data-value="medium" class="medium" aria-selected="true">Medium</li>
+              <li role="option" data-value="hard" class="hard">Hard</li>
+            </ul>
+            <select id="difficultyInput" class="visually-hidden" tabindex="-1" required aria-hidden="true">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
         </label>
         <button class="button button-primary add-button" type="submit"><span>＋</span> Add task</button>
       </form>
@@ -120,12 +128,20 @@
           <input id="setupTaskInput" maxlength="90" placeholder="Describe your task…" aria-label="Task description" required autocomplete="off">
         </label>
         <label class="field">
-          <select id="setupDifficultyInput" aria-label="Task difficulty" required>
-            <option value="" selected disabled>Choose difficulty</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
+          <span class="visually-hidden">Task difficulty</span>
+          <div class="difficulty-dropdown" data-difficulty-dropdown>
+            <button type="button" class="difficulty-trigger difficulty-medium" aria-haspopup="listbox" aria-expanded="false" aria-label="Task difficulty">Medium</button>
+            <ul class="difficulty-menu" role="listbox" hidden>
+              <li role="option" data-value="easy" class="easy">Easy</li>
+              <li role="option" data-value="medium" class="medium" aria-selected="true">Medium</li>
+              <li role="option" data-value="hard" class="hard">Hard</li>
+            </ul>
+            <select id="setupDifficultyInput" class="visually-hidden" tabindex="-1" required aria-hidden="true">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
         </label>
         <button class="button button-primary add-button" type="submit"><span>＋</span> Add task</button>
       </form>
