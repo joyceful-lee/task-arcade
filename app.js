@@ -38,7 +38,7 @@
     taskList: $('#taskList'), completedList: $('#completedList'), taskCount: $('#taskCount'),
     doneCount: $('#doneCount'), readyBadge: $('#readyBadge'), toast: $('#toast'),
     streakCount: $('#streakCount'), soundToggle: $('#soundToggle'), rewardStrip: $('#rewardStrip'),
-    siteGuide: $('#siteGuide'), helpButton: $('#helpButton'), closeGuide: $('#closeGuide'), dismissGuide: $('#dismissGuide'), closeResult: $('#closeResult'),
+    siteGuide: $('#siteGuide'), closeGuide: $('#closeGuide'), dismissGuide: $('#dismissGuide'), closeResult: $('#closeResult'),
     breakTimer: $('#breakTimer'), breakCountdown: $('#breakCountdown'), endBreakBtn: $('#endBreakBtn'),
     setupModal: $('#setupModal'), setupTaskForm: $('#setupTaskForm'), setupTaskInput: $('#setupTaskInput'),
     setupDifficultyInput: $('#setupDifficultyInput'), setupTaskList: $('#setupTaskList'),
@@ -59,7 +59,7 @@
   const spriteUrl = name => `url('${SPRITE_DIR}${name}.png')`;
   const spriteSizes = {};
   const spriteSize = name => spriteSizes[name] || null;
-  const scenePixelSize = width => width < 560 ? 4 : 5;
+  const scenePixelSize = width => width < 560 ? 3 : 4;
   // Read each PNG's dimensions so edited sprites can change size without touching CSS.
   ['balloon-pink', 'balloon-string', 'dart', 'pop-burst-pink'].forEach(name => {
     const image = new Image();
@@ -110,7 +110,7 @@
       const presets = {
         click: [[420,.045,0]], add: [[520,.07,0],[700,.08,.07]], throw: [[220,.08,0],[340,.1,.05]],
         miss: [[210,.12,0],[150,.16,.1]], grab: [[180,.08,0],[240,.09,.08]],
-        win: [[523,.09,0],[659,.09,.1],[784,.16,.2]], tick: [[920,.025,0]], unlock: [[660,.08,0],[880,.1,.09],[1100,.16,.18]]
+        win: [[523,.09,0],[659,.09,.1],[784,.16,.2]], tick: [[920,.025,0]], aim: [[1320,.014,0]], unlock: [[660,.08,0],[880,.1,.09],[1100,.16,.18]]
       };
       (presets[kind] || presets.click).forEach(([frequency,duration,delay]) => {
         const oscillator = audioContext.createOscillator();
@@ -125,6 +125,75 @@
       });
     } catch {}
   }
+
+  // 8-bit background music: looping chiptunes keyed by game, scheduled ahead with Web Audio.
+  // Notes are MIDI numbers in eighth-note steps; null is a rest.
+  const musicTracks = {
+    balloon: {
+      bpm: 138,
+      lead: [
+        72,76,79,76,84,79,76,79, 77,81,84,81,77,76,74,72, 74,79,83,79,86,83,79,77, 76,74,72,74,76,79,72,null,
+        76,81,84,81,76,72,69,72, 77,81,77,74,72,74,77,81, 79,83,86,83,79,77,76,74, 72,null,76,null,79,null,72,null
+      ],
+      // Chords per bar: C F G C | Am F G C. Bass is root/fifth quarter notes.
+      bass: [48,55,48,55, 41,48,41,48, 43,50,43,50, 48,55,48,55, 45,52,45,52, 41,48,41,48, 43,50,43,50, 48,55,48,null]
+    }
+  };
+  const music = { track: null, timer: 0, step: 0, nextTime: 0, gain: null };
+  const midiFrequency = note => 440 * Math.pow(2, (note - 69) / 12);
+  function playMusicNote(type, note, time, duration, volume) {
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+    oscillator.type = type;
+    oscillator.frequency.value = midiFrequency(note);
+    gain.gain.setValueAtTime(volume, time);
+    gain.gain.exponentialRampToValueAtTime(.0001, time + duration);
+    oscillator.connect(gain).connect(music.gain);
+    oscillator.start(time);
+    oscillator.stop(time + duration);
+  }
+  function scheduleMusic() {
+    const track = musicTracks[music.track];
+    const stepLength = 30 / track.bpm;
+    while (music.nextTime < audioContext.currentTime + .15) {
+      const lead = track.lead[music.step % track.lead.length];
+      if (lead) playMusicNote('square', lead, music.nextTime, stepLength * .85, .022);
+      // Bass plays quarter notes: one entry per two lead steps.
+      if (music.step % 2 === 0) {
+        const bass = track.bass[(music.step / 2) % track.bass.length];
+        if (bass) playMusicNote('triangle', bass, music.nextTime, stepLength * 1.7, .07);
+      }
+      music.step++;
+      music.nextTime += stepLength;
+    }
+  }
+  function stopMusic() {
+    clearInterval(music.timer);
+    if (music.gain) {
+      const fade = music.gain;
+      fade.gain.setTargetAtTime(0, audioContext.currentTime, .05);
+      setTimeout(() => fade.disconnect(), 400);
+    }
+    music.track = null; music.timer = 0; music.gain = null;
+  }
+  function updateMusic() {
+    const wanted = state.soundEnabled && !document.hidden && state.view !== 'tasks' && musicTracks[state.view] ? state.view : null;
+    if (wanted === music.track) { if (wanted && audioContext?.state === 'suspended') audioContext.resume(); return; }
+    if (music.track) stopMusic();
+    if (!wanted) return;
+    try {
+      audioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+      // Browsers keep audio suspended until the first click or key press; see the listeners below.
+      if (audioContext.state === 'suspended') audioContext.resume();
+      music.gain = audioContext.createGain();
+      music.gain.connect(audioContext.destination);
+      music.track = wanted; music.step = 0; music.nextTime = audioContext.currentTime + .05;
+      scheduleMusic();
+      music.timer = setInterval(scheduleMusic, 40);
+    } catch {}
+  }
+  ['pointerdown', 'keydown'].forEach(type => document.addEventListener(type, () => { if (music.track && audioContext?.state === 'suspended') audioContext.resume(); }));
+  document.addEventListener('visibilitychange', () => updateMusic());
 
   function recordPick(id) {
     state.recentPicks = [id, ...state.recentPicks.filter(item => item !== id)].slice(0, 3);
@@ -177,6 +246,7 @@
     els.soundToggle.setAttribute('aria-pressed', String(state.soundEnabled));
     els.soundToggle.setAttribute('aria-label', state.soundEnabled ? 'Mute game sounds' : 'Turn on game sounds');
     renderView();
+    updateMusic();
     renderRewards();
     renderLists();
     if (!preserveGame && state.view !== 'tasks') renderGame();
@@ -427,7 +497,16 @@
     save();
     els.siteGuide.classList.add('hidden');
     els.siteGuide.setAttribute('aria-hidden', 'true');
-    if (state.view !== 'tasks') els.helpButton.focus();
+  }
+
+  // Reusable arcade cabinet: a pixel-art marquee strip (each game's unique element), a
+  // bezel-framed screen holding the game's scene, and a control panel.
+  function arcadeCabinet({ title, marquee, screen, controls = '', instructions = '' }) {
+    return `<div class="arcade-cabinet">
+      <header class="cabinet-marquee" style="--marquee-art:${marquee}"><h2 class="visually-hidden">${escapeHtml(title)}</h2></header>
+      <div class="cabinet-bezel"><div class="cabinet-screen">${screen}</div></div>
+      <div class="cabinet-panel">${controls}${instructions ? `<p class="cabinet-instructions">${escapeHtml(instructions)}</p>` : ''}</div>
+    </div>`;
   }
 
   function renderBalloons() {
@@ -440,7 +519,8 @@
       const palette = balloonColors[(i + 2) % balloonColors.length];
       return `<div class="balloon decorative" aria-label="Decorative balloon" data-column="${column}" data-row="${row}" data-palette="${(i + 2) % balloonColors.length}" style="--balloon-mid:${palette.mid};--balloon-sprite:${spriteUrl(`balloon-${palette.name}`)};--drift-x:${(i%2?12:-10)}px;--drift-y:${8+i}px;--drift-back-x:${(i%2?-8:10)}px;--drift-back-y:${-6-i}px"></div>`;
     }).join('');
-    els.gameBoard.innerHTML = `<div class="balloon-scene" aria-label="Balloon dart game" style="--px:${scenePixelSize(els.gameBoard.clientWidth)}px">
+    els.gameStage.classList.add('has-cabinet');
+    const screen = `<div class="balloon-scene" aria-label="Balloon dart game" style="--px:${scenePixelSize(els.gameBoard.clientWidth)}px">
       <canvas class="pixel-backdrop" aria-hidden="true"></canvas>
       ${decorativeBalloons}
       ${shown.map((task, i) => {
@@ -451,9 +531,14 @@
       <div class="wood-footer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="aim-line" id="aimLine"></div>
       <div class="dart-launcher" id="dartLauncher" role="button" tabindex="0" aria-label="Pull back and release the dart"><div class="dart" id="dart" aria-hidden="true"></div></div>
-      <div class="dart-hint">Pull back to aim • release to throw</div>
-      <div class="dart-key-controls" aria-label="Dart aim controls"><button type="button" data-dart-angle="-8" aria-label="Aim dart left">◀</button><button type="button" id="fireDart">FIRE</button><button type="button" data-dart-angle="8" aria-label="Aim dart right">▶</button></div>
     </div>`;
+    els.gameBoard.innerHTML = arcadeCabinet({
+      title: 'Balloon Darts',
+      marquee: spriteUrl('marquee'),
+      screen,
+      controls: `<div class="dart-key-controls" aria-label="Dart aim controls"><button type="button" class="arcade-button" data-dart-angle="-8" aria-label="Aim dart left">◀</button><button type="button" class="arcade-button fire" id="fireDart">FIRE</button><button type="button" class="arcade-button" data-dart-angle="8" aria-label="Aim dart right">▶</button></div>`,
+      instructions: 'Pull back to aim • release to throw'
+    });
     applyBalloonDartSprites();
     setupPixelBackdrop();
     setupBalloonMotion();
@@ -702,14 +787,19 @@
     const launcher = $('#dartLauncher');
     const dart = $('#dart');
     const aimLine = $('#aimLine');
-    let pulling = false, dragX = 0, dragY = 0, frame = 0, keyboardAngle = 0;
+    let pulling = false, dragX = 0, dragY = 0, frame = 0, keyboardAngle = 0, aimStep = 0;
+    // Tick once each time the aim crosses a 4-degree step.
+    const tickAim = angle => {
+      const step = Math.round(angle / 4);
+      if (step !== aimStep) { aimStep = step; playSound('aim'); }
+    };
     const drawDart = (x, y, angle = 0) => { dart.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotate(${angle}deg)`; };
     const resetDart = () => { cancelAnimationFrame(frame); drawDart(0, 0, 0); scene.classList.remove('aiming'); pulling = false; };
 
     launcher.addEventListener('pointerdown', event => {
       if (state.busy) return;
       event.preventDefault();
-      pulling = true; dragX = 0; dragY = 0;
+      pulling = true; dragX = 0; dragY = 0; aimStep = 0;
       scene.classList.add('aiming');
       launcher.setPointerCapture(event.pointerId);
     });
@@ -727,6 +817,7 @@
       const angle = Math.atan2(-dx, Math.max(dy, 1)) * 180 / Math.PI;
       drawDart(dx, dy, angle);
       aimLine.style.transform = `rotate(${angle}deg)`;
+      tickAim(angle);
     });
     const launchDart = () => {
       if (state.busy) return;
@@ -790,8 +881,9 @@
       scene.classList.add('aiming');
       drawDart(dragX, dragY, keyboardAngle);
       aimLine.style.transform = `rotate(${keyboardAngle}deg)`;
+      tickAim(keyboardAngle);
     };
-    scene.querySelectorAll('[data-dart-angle]').forEach(button => button.addEventListener('click', () => setKeyboardAim(Number(button.dataset.dartAngle))));
+    els.gameBoard.querySelectorAll('[data-dart-angle]').forEach(button => button.addEventListener('click', () => setKeyboardAim(Number(button.dataset.dartAngle))));
     $('#fireDart').addEventListener('click', () => { if (dragY < 12) setKeyboardAim(0); launchDart(); });
     launcher.addEventListener('keydown', event => {
       if (event.key === 'ArrowLeft') { event.preventDefault(); setKeyboardAim(-8); }
@@ -1231,7 +1323,6 @@
   });
   els.endBreakBtn.addEventListener('click', endBreakEarly);
 
-  els.helpButton.addEventListener('click', () => { playSound('click'); openGuide(); });
   els.closeGuide.addEventListener('click', closeGuide);
   els.dismissGuide.addEventListener('click', () => { playSound('click'); closeGuide(); });
   els.siteGuide.addEventListener('click', event => { if (event.target === els.siteGuide) closeGuide(); });

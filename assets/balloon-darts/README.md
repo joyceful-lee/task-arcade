@@ -9,6 +9,10 @@ crisp pixels and reads the files' width/height, so you can resize a sprite freel
 | `pop-burst-<color>.png` | Starburst when a balloon of that color pops |
 | `balloon-string.png` | String hanging under each balloon |
 | `dart.png` | The dart, tip pointing up |
+| `marquee.png` | Cabinet marquee strip (256×16), shown at 4× on desktop and 3× on phones |
+
+The marquee is centered and cropped at the sides on narrow screens, so keep the title and
+key art within the middle ~150 pixels.
 
 Sizes are read from `balloon-pink.png` and `pop-burst-pink.png`, so keep each color's
 variants the same size. The color list (and each color's main shade, used for the burst

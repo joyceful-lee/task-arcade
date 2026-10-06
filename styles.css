@@ -118,8 +118,6 @@ h1 { margin-bottom: 0; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: .98; 
   border: 3px solid #364181; border-radius: 26px; background: #080d2f;
   box-shadow: var(--shadow), inset 0 0 0 1px rgba(255,255,255,.08);
 }
-.help-button { position:absolute; z-index:31; top:12px; right:12px; width:38px; height:38px; display:grid; place-items:center; border:2px solid rgba(255,255,255,.78); border-radius:50%; color:#17183f; background:#ffcf45; box-shadow:0 4px 0 rgba(66,35,15,.45); cursor:pointer; font-size:1.12rem; font-weight:950; line-height:1; }
-.help-button:hover { filter:brightness(1.06); transform:translateY(-1px); }
 .game-board { height: 100%; min-height: 0; position: relative; }
 .empty-game { position: absolute; inset: 14px 0 0; display: grid; place-content: center; justify-items: center; text-align: center; padding: 30px; z-index: 5; background: #080d2f; }
 .empty-game h2 { margin: 12px 0 4px; font-size: 1.8rem; }
@@ -1620,3 +1618,90 @@ body.theme-balloon {
 }
 .balloon-scene .balloon-burst i:nth-of-type(3n) { width:var(--px); height:var(--px); }
 @keyframes pixelBurst { from { transform:scale(.6); } 70% { opacity:1; } to { transform:scale(1.8); opacity:0; } }
+
+/* Arcade cabinet: reusable neutral black/gray frame around a game's screen. The pixel-art
+   marquee strip passed to arcadeCabinet() is the per-game element. */
+.game-stage.has-cabinet {
+  max-width:980px; height:auto; min-height:0; overflow:visible;
+  border:0; border-radius:0; background:transparent; box-shadow:none;
+}
+.game-stage.has-cabinet .game-board { height:auto; }
+.arcade-cabinet {
+  position:relative; padding:12px 18px 0;
+  background:linear-gradient(90deg,#0e0e11 0,#202026 5%,#2a2a31 50%,#202026 95%,#0e0e11 100%);
+  border:3px solid #050506; border-radius:22px 22px 14px 14px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.08),inset 6px 0 0 #3a3a42,inset -6px 0 0 #3a3a42,0 26px 50px rgba(0,0,0,.45);
+}
+.cabinet-marquee {
+  --marquee-px:4px;
+  position:relative; height:calc(var(--marquee-px) * 16 + 6px); overflow:hidden;
+  border:3px solid #050506; border-radius:6px;
+  background:#0058f8 var(--marquee-art) center / auto 100% no-repeat;
+  image-rendering:pixelated;
+  box-shadow:0 0 0 2px #3a3a42;
+}
+.cabinet-marquee::after {
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.1),transparent 45%);
+}
+.visually-hidden { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0; }
+.cabinet-bezel {
+  margin-top:12px; padding:20px;
+  background:#0b0b0d; border:3px solid #050506; border-radius:14px;
+  box-shadow:inset 0 0 0 2px #26262c,inset 0 12px 26px rgba(0,0,0,.85);
+}
+.cabinet-screen {
+  position:relative; height:440px; overflow:hidden; isolation:isolate;
+  border-radius:16px; background:#000;
+  box-shadow:0 0 0 3px #000,0 0 0 5px #2a2a30;
+}
+.cabinet-screen::after {
+  content:""; position:absolute; inset:0; z-index:30; pointer-events:none; border-radius:inherit;
+  background:
+    linear-gradient(115deg,rgba(255,255,255,.08) 0 20%,transparent 32%),
+    radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.45) 100%);
+}
+/* With the controls on the panel, the counter only needs to hold the dart. */
+.cabinet-screen .wood-footer { height:calc(var(--px) * 8); max-height:none; }
+.cabinet-screen .dart-launcher { bottom:50px; }
+.cabinet-screen .aim-line { bottom:96px; }
+.cabinet-panel {
+  position:relative; margin:0 -18px; padding:18px 24px 18px;
+  display:grid; justify-items:center; gap:12px;
+  background:linear-gradient(180deg,#44444d 0,#2c2c33 12%,#1c1c21 100%);
+  border-top:3px solid #050506; border-radius:0 0 11px 11px;
+  box-shadow:inset 0 3px 0 rgba(255,255,255,.1);
+}
+.cabinet-panel .dart-key-controls { position:static; z-index:auto; transform:none; display:flex; align-items:center; gap:30px; }
+.cabinet-instructions {
+  margin:0; color:#9a9aa6; font-family:"Press Start 2P",monospace; font-size:.5rem; letter-spacing:.06em; text-transform:uppercase; text-align:center;
+}
+.cabinet-panel .arcade-button {
+  --cap:#f8b800; --cap-light:#f8d878; --cap-dark:#ac7c00;
+  width:52px; height:52px; min-width:0; padding:0;
+  display:grid; place-items:center;
+  color:#000; font-family:"Press Start 2P",monospace; font-size:.75rem; font-weight:400; letter-spacing:0;
+  border:3px solid #050506; border-radius:50%;
+  background:radial-gradient(circle at 38% 30%,var(--cap-light) 0 16%,var(--cap) 44%,var(--cap-dark) 100%);
+  box-shadow:0 0 0 5px #3a3a42,0 0 0 8px #050506,inset 0 -5px 0 rgba(0,0,0,.28),0 5px 0 5px #050506;
+  cursor:pointer; transition:transform .06s,box-shadow .06s;
+}
+.cabinet-panel #fireDart {
+  --cap:#f83800; --cap-light:#f87858; --cap-dark:#a81000;
+  width:76px; height:76px; min-width:0;
+  color:#fcfcfc; font-family:"Press Start 2P",monospace; font-size:.7rem; font-weight:400; letter-spacing:0; text-shadow:2px 2px 0 #000;
+  background:radial-gradient(circle at 38% 30%,var(--cap-light) 0 16%,var(--cap) 44%,var(--cap-dark) 100%);
+}
+.cabinet-panel .arcade-button:active { transform:translateY(4px); box-shadow:0 0 0 5px #3a3a42,0 0 0 8px #050506,inset 0 -2px 0 rgba(0,0,0,.28),0 1px 0 5px #050506; }
+.cabinet-panel .arcade-button:focus-visible { outline:3px solid #fcfcfc; outline-offset:10px; }
+@media (max-width:560px) {
+  .arcade-cabinet { padding:8px 8px 0; border-radius:16px 16px 10px 10px; box-shadow:inset 0 2px 0 rgba(255,255,255,.08),inset 4px 0 0 #3a3a42,inset -4px 0 0 #3a3a42,0 18px 36px rgba(0,0,0,.4); }
+  .cabinet-marquee { --marquee-px:3px; }
+  .cabinet-bezel { margin-top:8px; padding:10px 8px; }
+  .cabinet-screen { height:430px; border-radius:12px; }
+  .cabinet-panel { margin:0 -8px; padding:14px 12px 14px; gap:10px; }
+  .cabinet-panel .dart-key-controls { gap:24px; }
+  .cabinet-panel .arcade-button { width:46px; height:46px; }
+  .cabinet-panel #fireDart { width:64px; height:64px; font-size:.6rem; }
+  .cabinet-instructions { font-size:.42rem; }
+}
