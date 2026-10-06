@@ -1562,6 +1562,7 @@ body.theme-balloon {
   border:0; border-radius:0; box-shadow:none;
   background:var(--balloon-sprite) center / 100% 100% no-repeat;
   image-rendering:pixelated;
+  filter:drop-shadow(var(--px) var(--px) 0 rgba(0,0,0,.45));
 }
 .balloon-scene .balloon::before { display:none; }
 .balloon-scene .balloon::after {
