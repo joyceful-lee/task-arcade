@@ -37,7 +37,7 @@
     taskForm: $('#taskForm'), taskInput: $('#taskInput'), difficultyInput: $('#difficultyInput'),
     taskList: $('#taskList'), completedList: $('#completedList'), taskCount: $('#taskCount'),
     doneCount: $('#doneCount'), readyBadge: $('#readyBadge'), toast: $('#toast'),
-    streakCount: $('#streakCount'), soundToggle: $('#soundToggle'), rewardStrip: $('#rewardStrip'),
+    streakCount: $('#streakCount'), soundToggle: $('#soundToggle'), rewardStrip: $('#rewardStrip'), completedCount: $('#completedCount'),
     siteGuide: $('#siteGuide'), closeGuide: $('#closeGuide'), dismissGuide: $('#dismissGuide'), closeResult: $('#closeResult'),
     breakTimer: $('#breakTimer'), breakCountdown: $('#breakCountdown'), endBreakBtn: $('#endBreakBtn'),
     setupModal: $('#setupModal'), setupTaskForm: $('#setupTaskForm'), setupTaskInput: $('#setupTaskInput'),
@@ -335,35 +335,34 @@
     const levelsCleared = Math.floor(dailyPoints / levelSize);
     const progress = dailyPoints % levelSize;
     const nextTarget = (levelsCleared + 1) * levelSize;
-    const percent = (progress / levelSize) * 100;
     const previousPoints = lastRewardPoints;
-    const previousProgress = previousPoints === null ? progress : previousPoints % levelSize;
-    const previousPercent = (previousProgress / levelSize) * 100;
-    const passes = Math.max(0, levelsCleared - (state.stats.dailyBreaksClaimed || 0));
-    const championUnlocked = levelsCleared >= 3;
+    const leveledUp = previousPoints !== null && Math.floor(dailyPoints / levelSize) > Math.floor(previousPoints / levelSize);
+    // Every full bar (6 points) earns one 5-minute break.
+    const breaks = Math.max(0, levelsCleared - (state.stats.dailyBreaksClaimed || 0));
+    const pad = (value, size) => String(value).padStart(size, '0');
     document.body.classList.toggle('run-powered', levelsCleared >= 1);
-    document.body.classList.toggle('run-champion', championUnlocked);
-    els.rewardStrip.innerHTML = `<div class="daily-run-copy"><span>DAILY RUN · LEVEL ${levelsCleared + 1}</span><strong>${dailyPoints} points · ${dailyTasks} ${dailyTasks === 1 ? 'task' : 'tasks'} today</strong><small>${championUnlocked ? 'Daily Champion is active for the rest of today' : `Daily Champion unlocks at 18 points (${18 - dailyPoints} to go)`}</small></div>
-      <div class="daily-progress" role="progressbar" aria-label="Daily Run points toward the next level" aria-valuemin="0" aria-valuemax="${levelSize}" aria-valuenow="${progress}"><i style="width:${previousPercent}%"></i></div>
-      <span class="reward-badge unlocked">${passes} Recharge ${passes === 1 ? 'Pass' : 'Passes'}</span>
-      <span class="reward-badge">Next pass in ${nextTarget - dailyPoints} pts</span>
-      <button class="reward-badge reward-action" type="button" data-claim-break ${passes ? '' : 'disabled'}>${passes ? 'Take a 5-min break' : 'Earn 6 pts to unlock'}</button>`;
-    const progressBar = els.rewardStrip.querySelector('.daily-progress i');
-    if (previousPoints !== null && dailyPoints > previousPoints && Math.floor(dailyPoints / levelSize) > Math.floor(previousPoints / levelSize)) {
-      requestAnimationFrame(() => {
-        progressBar.style.width = '100%';
-        progressBar.classList.add('level-up');
-        setTimeout(() => {
-          progressBar.style.transition = 'none';
-          progressBar.style.width = '0%';
-          requestAnimationFrame(() => requestAnimationFrame(() => {
-            progressBar.style.transition = '';
-            progressBar.style.width = `${percent}%`;
-          }));
-        }, reducedMotion ? 20 : 520);
-      });
-    } else {
-      requestAnimationFrame(() => { progressBar.style.width = `${percent}%`; });
+    // A level-up first shows the meter full and flashing, then drops to the new progress.
+    const shownProgress = leveledUp && !reducedMotion ? levelSize : progress;
+    const segments = Array.from({ length: levelSize }, (_, i) => `<i class="${i < shownProgress ? 'lit' : ''}"></i>`).join('');
+    els.rewardStrip.innerHTML = `
+      <div class="score-readout"><span>LEVEL</span><strong>${pad(levelsCleared + 1, 2)}</strong></div>
+      <div class="score-readout"><span>POINTS</span><strong>${pad(dailyPoints, 3)}</strong></div>
+      <div class="score-meter">
+        <span>DAILY RUN · ${dailyTasks} ${dailyTasks === 1 ? 'TASK' : 'TASKS'} TODAY</span>
+        <div class="daily-progress${leveledUp && !reducedMotion ? ' level-up' : ''}" role="progressbar" aria-label="Daily Run points toward the next level" aria-valuemin="0" aria-valuemax="${levelSize}" aria-valuenow="${progress}">${segments}</div>
+        <small>Fill the bar for a 5-min break · ${nextTarget - dailyPoints} ${nextTarget - dailyPoints === 1 ? 'pt' : 'pts'} to go</small>
+      </div>
+      <div class="score-ticket${breaks ? ' ready' : ''}">
+        <span>5-MIN BREAKS</span><strong>×${breaks}</strong>
+        <button class="reward-action" type="button" data-claim-break ${breaks ? '' : 'disabled'}>${breaks ? 'Take a break' : 'Fill the bar'}</button>
+      </div>`;
+    if (shownProgress !== progress) {
+      setTimeout(() => {
+        const meter = els.rewardStrip.querySelector('.daily-progress');
+        if (!meter) return;
+        meter.classList.remove('level-up');
+        meter.querySelectorAll('i').forEach((segment, i) => segment.classList.toggle('lit', i < progress));
+      }, 900);
     }
     lastRewardPoints = dailyPoints;
   }
@@ -380,7 +379,7 @@
       els.breakTimer.classList.add('hidden');
       els.breakTimer.setAttribute('aria-hidden', 'true');
       save();
-      showToast('Recharge complete. Ready for the next mission!');
+      showToast("Break's over. Ready for the next mission!");
       playSound('unlock');
       return;
     }
@@ -417,23 +416,54 @@
     els.taskList.innerHTML = state.tasks.length ? state.tasks.map(task => `
       <div class="task-item" data-id="${task.id}">
         <button class="task-check" data-action="complete" aria-label="Mark ${escapeHtml(task.text)} complete">✓</button>
-        <div><div class="task-name">${escapeHtml(task.text)}</div><div class="task-meta"><span class="mini-difficulty ${task.difficulty}">${task.difficulty}</span></div></div>
+        <div class="task-body"><span class="task-name">${escapeHtml(task.text)}</span> <span class="mini-difficulty ${task.difficulty}">${task.difficulty}</span></div>
         <div class="task-actions">
           <button class="icon-button" data-action="edit" title="Edit task" aria-label="Edit ${escapeHtml(task.text)}">✎</button>
           <button class="icon-button" data-action="delete" title="Delete task" aria-label="Delete ${escapeHtml(task.text)}">×</button>
         </div>
-      </div>`).join('') : `<div class="empty-list">No tasks yet. Add one above to stock the games.<button type="button" class="button button-primary empty-suggest" data-suggest-tasks>Suggest some tasks</button></div>`;
+      </div>`).join('') : `<div class="empty-list">No tasks yet. Write one above to stock the games.<button type="button" class="button button-primary empty-suggest" data-suggest-tasks>Suggest some tasks</button></div>`;
 
     els.completedList.innerHTML = state.completed.length ? state.completed.map(task => `
       <div class="task-item">
         <span class="task-check completed-check">✓</span>
-        <div><div class="task-name">${escapeHtml(task.text)}</div><div class="task-meta"><span class="mini-difficulty ${task.difficulty}">${task.difficulty}</span></div></div>
-        <button class="icon-button" data-restore="${task.id}" title="Restore task" aria-label="Restore ${escapeHtml(task.text)}">↶</button>
+        <div class="task-body"><span class="task-name">${escapeHtml(task.text)}</span> <span class="mini-difficulty ${task.difficulty}">${task.difficulty}</span></div>
+        <div class="task-actions"><button class="icon-button" data-restore="${task.id}" title="Restore task" aria-label="Restore ${escapeHtml(task.text)}">↶</button></div>
       </div>`).join('') : '<div class="empty-list">Finished tasks land here.</div>';
-
-    els.taskList.classList.toggle('is-scrollable', state.tasks.length > 7);
-    els.completedList.classList.toggle('is-scrollable', state.completed.length > 7);
+    els.completedCount.textContent = state.completed.length;
+    // Only offer clearing when there's something to clear.
+    $('#clearTasksBtn').hidden = !state.tasks.length;
+    $('#clearCompletedBtn').hidden = !state.completed.length;
     renderSetupList();
+  }
+
+  // Edit a task in place: the name becomes a text field; Enter or leaving the field saves, Escape cancels.
+  function editTaskInline(row, task) {
+    const name = row.querySelector('.task-name');
+    if (!name || row.classList.contains('editing')) return;
+    const input = document.createElement('input');
+    input.className = 'task-edit-input';
+    input.value = task.text;
+    input.maxLength = 90;
+    input.setAttribute('aria-label', 'Edit task');
+    row.classList.add('editing');
+    name.replaceWith(input);
+    input.focus();
+    input.select();
+    let finished = false;
+    const finish = keep => {
+      if (finished) return;
+      finished = true;
+      const next = input.value.trim().slice(0, 90);
+      const changed = keep && next && next !== task.text;
+      if (changed) task.text = next;
+      render();
+      if (changed) showToast('Task updated.');
+    };
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter') { event.preventDefault(); finish(true); }
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); finish(false); }
+    });
+    input.addEventListener('blur', () => finish(true));
   }
 
   function renderSetupList() {
@@ -1658,7 +1688,7 @@
     hideResult();
     celebrate();
     playSound(levelAfter > levelBefore ? 'unlock' : 'win');
-    showToast(levelAfter > levelBefore ? `Level ${levelAfter + 1}! Recharge Pass unlocked.` : `Mission cleared! +${earnedPoints} Daily Run ${earnedPoints === 1 ? 'point' : 'points'}.`);
+    showToast(levelAfter > levelBefore ? 'Bar full! You earned a 5-minute break.' : `Mission cleared! +${earnedPoints} Daily Run ${earnedPoints === 1 ? 'point' : 'points'}.`);
     render({ preserveGame });
   }
 
@@ -1717,10 +1747,7 @@
     const task = state.tasks.find(t => t.id === id);
     if (button.dataset.action === 'complete') completeTask(id);
     if (button.dataset.action === 'delete') { state.tasks = state.tasks.filter(t => t.id !== id); render(); showToast('Task removed.'); }
-    if (button.dataset.action === 'edit') {
-      const next = prompt('Edit task', task.text);
-      if (next?.trim()) { task.text = next.trim().slice(0, 90); render(); showToast('Task updated.'); }
-    }
+    if (button.dataset.action === 'edit') editTaskInline(button.closest('.task-item'), task);
   });
 
   els.finishSetupBtn.addEventListener('click', () => {

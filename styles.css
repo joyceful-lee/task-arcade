@@ -302,7 +302,6 @@ h1 { margin-bottom: 0; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: .98; 
 .daily-run-copy span { color:var(--muted); font-size:.68rem; font-weight:900; letter-spacing:.13em; }
 .daily-run-copy strong { font-size:.9rem; }
 .daily-run-copy small { margin-top:3px; color:var(--muted); font-size:.66rem; font-weight:750; line-height:1.2; }
-.run-champion .daily-run-copy small { color:#9a5b12; }
 .list-controls { justify-content:flex-end; margin-bottom:8px; }
 .daily-progress { height:10px; overflow:hidden; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.62); }
 .daily-progress i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--purple),var(--pink)); transition:width .35s ease; }
@@ -318,7 +317,6 @@ h1 { margin-bottom: 0; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: .98; 
 .break-timer-card p:not(.eyebrow) { max-width:390px; margin:0 auto 22px; color:#dce3ff; }
 .run-powered .brand-mark { box-shadow:3px 3px 0 var(--pink),0 0 18px rgba(255,218,83,.72); }
 .run-powered .daily-progress i { background:linear-gradient(90deg,#6b5de4,#ff4d8d,#ffcc3c); }
-.run-champion .topbar::after { content:"✦  DAILY CHAMPION  ✦"; position:absolute; z-index:2; left:50%; top:100%; bottom:auto; transform:translateX(-50%); padding:2px 15px; border-radius:0 0 9px 9px; color:#563115; background:#ffd85c; font-size:.66rem; font-weight:950; letter-spacing:.13em; box-shadow:0 4px 10px rgba(0,0,0,.18); }
 .game-stage.miss-impact { animation:cabinetMiss .25s ease-out; }
 
 @keyframes float { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-12px) rotate(2deg); } }
@@ -1159,4 +1157,142 @@ body.theme-balloon {
   .cabinet-panel .arcade-button.fire { width:64px; height:64px; font-size:.6rem; }
   .cabinet-panel .joystick { margin:0 2px; }
   .cabinet-instructions { font-size:.42rem; }
+}
+
+/* Task List rework: one lined notebook page (tasks sit on the rulings, one per line) under an
+   arcade scoreboard for the Daily Run. Scoped to .task-zone so the setup modal keeps its rows. */
+.task-zone { --rule:40px; --rule-color:rgba(78,153,191,.32); --margin-x:52px; }
+.task-zone > .reward-strip,
+.task-zone > .notebook { max-width:880px; margin-left:auto; margin-right:auto; }
+
+/* Daily Run scoreboard, styled like the game cabinets. */
+.task-zone .reward-strip {
+  display:grid; grid-template-columns:auto auto minmax(0,1fr) auto; align-items:center; gap:14px;
+  margin:0 auto 22px; padding:12px 16px;
+  background:linear-gradient(90deg,#0e0e11 0,#202026 6%,#2a2a31 50%,#202026 94%,#0e0e11 100%);
+  border:3px solid #050506; border-radius:14px;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.08),inset 0 0 0 2px #3a3a42,0 14px 30px rgba(10,10,20,.22);
+  font-family:"Press Start 2P",monospace; font-weight:400;
+}
+.score-readout { display:grid; gap:8px; justify-items:center; padding:10px 14px; background:#000000; border:2px solid #3a3a42; border-radius:6px; }
+.score-readout span, .score-meter span, .score-ticket span { color:#8a8a96; font-size:.6rem; letter-spacing:.06em; }
+.score-readout strong { color:#f8b800; font-size:1.4rem; font-weight:400; text-shadow:0 0 8px rgba(248,184,0,.45); }
+.score-meter { display:grid; gap:9px; min-width:0; }
+.score-meter span { color:#bcbcbc; }
+.score-meter small { color:#a4a4ae; font-size:.58rem; line-height:1.5; }
+.task-zone .daily-progress { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; height:22px; overflow:visible; padding:0; border:0; border-radius:0; background:none; }
+.task-zone .daily-progress i { display:block; width:auto; height:100%; border:2px solid #050506; border-radius:2px; background:#26262c; box-shadow:inset 0 2px 0 rgba(255,255,255,.05); transition:none; }
+.task-zone .daily-progress i.lit { background:#f8b800; box-shadow:inset 0 3px 0 #f8d878,inset 0 -3px 0 #ac7c00,0 0 8px rgba(248,184,0,.35); }
+.task-zone .daily-progress.level-up i { animation:meterFlash .3s steps(1) 3; }
+@keyframes meterFlash { 50% { background:#fcfcfc; } }
+.score-ticket {
+  display:grid; grid-template-columns:auto auto; align-items:center; gap:6px 10px;
+  padding:10px 12px; background:#1c1c21; border:2px dashed #55555f; border-radius:6px;
+}
+/* A ready break makes the ticket glow until it's taken. */
+.score-ticket.ready { border-color:#f8b800; animation:ticketReady 1.2s steps(1) infinite; }
+.score-ticket.ready span { color:#f8d878; }
+@keyframes ticketReady { 50% { border-color:#f87858; } }
+@media (prefers-reduced-motion:reduce) { .score-ticket.ready { animation:none; } }
+.score-ticket strong { justify-self:end; color:#f87858; font-size:1.1rem; font-weight:400; }
+.score-ticket .reward-action {
+  grid-column:1 / -1; min-height:36px; padding:8px 12px; border:2px solid #050506; border-radius:4px;
+  color:#fcfcfc; background:#f83800; box-shadow:inset 0 -3px 0 #a81000,inset 0 3px 0 #f87858;
+  font-family:"Press Start 2P",monospace; font-size:.58rem; font-weight:400; letter-spacing:0; cursor:pointer;
+}
+.score-ticket .reward-action:hover:not(:disabled) { transform:none; filter:brightness(1.1); }
+.score-ticket .reward-action:disabled { color:#8a8a96; background:#2a2a31; box-shadow:none; opacity:1; cursor:not-allowed; }
+
+/* The notebook page: cream paper with a red margin; each region carries its own rulings. */
+.task-zone .notebook {
+  position:relative; overflow:visible; padding:0 0 10px; min-height:0;
+  background-color:#fffef6;
+  background-image:linear-gradient(90deg,transparent 0 calc(var(--margin-x) - 12px),rgba(207,72,74,.42) calc(var(--margin-x) - 11px) calc(var(--margin-x) - 9px),transparent calc(var(--margin-x) - 8px));
+  border:1px solid #d0bfa1; border-radius:5px 16px 16px 5px;
+  box-shadow:0 15px 28px rgba(61,43,29,.13);
+}
+.task-zone .notebook .list-title {
+  min-height:0; margin:0; padding:20px 20px 12px var(--margin-x);
+  display:flex; align-items:center; justify-content:space-between;
+  border-bottom:2px solid rgba(78,153,191,.5);
+}
+.task-zone .notebook .list-title h3 { display:flex; align-items:center; gap:10px; margin:0; font-size:1.15rem; }
+.task-zone .notebook .task-form {
+  grid-template-columns:minmax(0,1fr) 150px auto; align-items:center; gap:10px;
+  margin:0; padding:10px 20px 10px var(--margin-x);
+  background:transparent; border:0; border-bottom:1px solid var(--rule-color); border-radius:0; box-shadow:none;
+}
+.task-zone .notebook .task-form .field input {
+  min-height:40px; padding:6px 2px; border:0; border-bottom:2px dashed rgba(78,153,191,.55); border-radius:0;
+  background:transparent; font-family:"Playpen Sans","Segoe Print","Bradley Hand",cursive; font-size:1.05rem; font-weight:600;
+}
+.task-zone .notebook .task-form .field input:focus { outline:none; border-bottom-color:#7765e8; }
+.task-zone .notebook .difficulty-trigger { min-height:40px; padding:6px 32px 6px 10px; }
+.task-zone .notebook .add-button { min-height:40px; padding:8px 14px; box-shadow:0 4px 0 #d59c13; }
+
+/* Task rows: every row is a whole number of rulings tall, so wrapped names stay on the lines. */
+.task-zone .task-list {
+  display:block; gap:0;
+  background-image:repeating-linear-gradient(180deg,transparent 0 calc(var(--rule) - 1px),var(--rule-color) calc(var(--rule) - 1px) var(--rule));
+}
+.task-zone .task-item {
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:start; gap:12px;
+  min-height:var(--rule); padding:0 14px 0 var(--margin-x); border:0; background:transparent;
+}
+/* The row's own font matches the name so each line box is exactly one ruling tall. */
+.task-zone .task-item > .task-body { align-self:start; min-width:0; font-family:"Playpen Sans","Segoe Print","Bradley Hand",cursive; font-size:1.08rem; line-height:var(--rule); }
+.task-zone .task-name {
+  min-height:0; line-height:var(--rule); overflow-wrap:anywhere;
+  font-family:"Playpen Sans","Segoe Print","Bradley Hand",cursive; font-size:1.08rem; font-weight:700; color:#1b2150;
+}
+.task-zone .task-item .mini-difficulty { vertical-align:middle; margin-left:4px; padding:1px 7px; font-family:"Doppio One","Trebuchet MS",Verdana,sans-serif; font-size:.56rem; line-height:1.3; }
+.task-zone .task-check { width:26px; height:26px; margin-top:calc((var(--rule) - 26px) / 2); margin-left:-38px; }
+.task-zone .task-actions { display:flex; gap:2px; margin-top:calc((var(--rule) - 34px) / 2); opacity:.45; transition:opacity .15s; }
+.task-zone .task-item:hover .task-actions,
+.task-zone .task-item:focus-within .task-actions { opacity:1; }
+.task-zone .icon-button { width:34px; height:34px; border-radius:8px; color:#3f4a7a; font-size:1.05rem; }
+.task-zone .icon-button[data-action="delete"]:hover { color:#b63b6b; background:#ffe3ec; }
+@media (hover:none) { .task-zone .task-actions { opacity:1; } }
+.task-zone .task-item.editing .task-actions { opacity:1; }
+.task-zone .task-item.editing .mini-difficulty { display:none; }
+.task-edit-input {
+  width:100%; height:calc(var(--rule) - 8px); margin:4px 0; padding:0 6px;
+  border:2px solid #7765e8; border-radius:6px; background:#ffffff; color:#1b2150;
+  font-family:"Playpen Sans","Segoe Print","Bradley Hand",cursive; font-size:1.02rem; font-weight:700;
+}
+.task-zone .empty-list { min-height:calc(var(--rule) * 3); padding:0 14px 0 var(--margin-x); line-height:var(--rule); gap:0; }
+.task-zone .empty-list .empty-suggest { margin:2px 0 10px; }
+
+/* Completed tasks fold away at the bottom of the same page. */
+.completed-section { border-top:2px solid rgba(78,153,191,.5); margin-top:10px; }
+.completed-section summary {
+  display:flex; align-items:center; gap:10px; min-height:var(--rule); padding:0 20px 0 var(--margin-x);
+  cursor:pointer; list-style:none; color:#4d567f; font-weight:900;
+}
+.completed-section summary::-webkit-details-marker { display:none; }
+.completed-section summary::before { content:"▸"; margin-left:-22px; width:12px; color:#8a92b8; transition:transform .15s; }
+.completed-section[open] summary::before { transform:rotate(90deg); }
+.completed-summary { display:flex; align-items:center; gap:10px; }
+.completed-section .count-badge { background:#8a92b8; }
+.completed-tools { display:flex; justify-content:flex-end; padding:0 14px; margin-top:-6px; }
+.task-zone .completed-list .task-item { opacity:.7; }
+.task-zone .completed-list .task-name { text-decoration:line-through; font-weight:600; }
+.task-zone .completed-list .task-actions { opacity:1; }
+
+@media (max-width:920px) {
+  .task-zone .reward-strip { grid-template-columns:auto auto minmax(0,1fr); }
+  .score-ticket { grid-column:1 / -1; grid-template-columns:auto auto 1fr; }
+  .score-ticket .reward-action { grid-column:auto; justify-self:end; }
+}
+@media (max-width:560px) {
+  .task-zone { --rule:38px; --margin-x:44px; }
+  .task-zone .reward-strip { grid-template-columns:1fr 1fr; gap:10px; padding:10px; }
+  .score-meter { grid-column:1 / -1; }
+  .score-ticket { grid-template-columns:auto 1fr; }
+  .score-ticket .reward-action { grid-column:1 / -1; justify-self:stretch; }
+  .task-zone .notebook .list-title { padding:16px 14px 10px var(--margin-x); }
+  .task-zone .notebook .task-form { grid-template-columns:1fr auto; padding:8px 14px 10px var(--margin-x); }
+  .task-zone .notebook .task-form .task-input-wrap { grid-column:1 / -1; }
+  .task-zone .task-item { gap:8px; padding-right:8px; }
+  .task-zone .task-check { margin-left:-34px; }
 }

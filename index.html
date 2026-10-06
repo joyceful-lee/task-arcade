@@ -68,50 +68,41 @@
     </section>
 
     <section class="task-zone" id="tasks" aria-label="Task lists">
-      <div class="section-heading list-controls">
-        <button class="text-button danger" id="clearTasksBtn">Clear all tasks</button>
-      </div>
+      <div class="reward-strip" id="rewardStrip" aria-label="Daily Run progress"></div>
 
-      <div class="reward-strip" id="rewardStrip" aria-label="Progress rewards"></div>
-
-      <form class="task-form" id="taskForm">
-        <label class="field task-input-wrap">
-          <input id="taskInput" maxlength="90" placeholder="Describe your task…" aria-label="Task description" required autocomplete="off">
-        </label>
-        <label class="field">
-          <span class="visually-hidden">Task difficulty</span>
-          <div class="difficulty-dropdown" data-difficulty-dropdown>
-            <button type="button" class="difficulty-trigger difficulty-medium" aria-haspopup="listbox" aria-expanded="false" aria-label="Task difficulty">Medium</button>
-            <ul class="difficulty-menu" role="listbox" hidden>
-              <li role="option" data-value="easy" class="easy">Easy</li>
-              <li role="option" data-value="medium" class="medium" aria-selected="true">Medium</li>
-              <li role="option" data-value="hard" class="hard">Hard</li>
-            </ul>
-            <select id="difficultyInput" class="visually-hidden" tabindex="-1" required aria-hidden="true">
-              <option value="easy">Easy</option>
-              <option value="medium" selected>Medium</option>
-              <option value="hard">Hard</option>
-            </select>
-          </div>
-        </label>
-        <button class="button button-primary add-button" type="submit"><span>＋</span> Add task</button>
-      </form>
-
-      <div class="lists-grid">
-        <div class="list-card">
-          <div class="list-title">
-            <h3>Tasks</h3>
-            <span id="readyBadge" class="count-badge">0</span>
-          </div>
-          <div id="taskList" class="task-list"></div>
+      <div class="list-card notebook">
+        <div class="list-title">
+          <h3>Tasks <span id="readyBadge" class="count-badge">0</span></h3>
+          <button class="text-button danger" id="clearTasksBtn" type="button">Clear all</button>
         </div>
-        <div class="list-card completed-card">
-          <div class="list-title">
-            <h3>Completed Tasks</h3>
-            <button class="text-button" id="clearCompletedBtn">Clear completed</button>
-          </div>
+        <form class="task-form" id="taskForm">
+          <label class="field task-input-wrap">
+            <input id="taskInput" maxlength="90" placeholder="Write a new task…" aria-label="Task description" required autocomplete="off">
+          </label>
+          <label class="field">
+            <span class="visually-hidden">Task difficulty</span>
+            <div class="difficulty-dropdown" data-difficulty-dropdown>
+              <button type="button" class="difficulty-trigger difficulty-medium" aria-haspopup="listbox" aria-expanded="false" aria-label="Task difficulty">Medium</button>
+              <ul class="difficulty-menu" role="listbox" hidden>
+                <li role="option" data-value="easy" class="easy">Easy</li>
+                <li role="option" data-value="medium" class="medium" aria-selected="true">Medium</li>
+                <li role="option" data-value="hard" class="hard">Hard</li>
+              </ul>
+              <select id="difficultyInput" class="visually-hidden" tabindex="-1" required aria-hidden="true">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+          </label>
+          <button class="button button-primary add-button" type="submit"><span>＋</span> Add task</button>
+        </form>
+        <div id="taskList" class="task-list"></div>
+        <details class="completed-section">
+          <summary><span class="completed-summary">Completed <span id="completedCount" class="count-badge">0</span></span></summary>
+          <div class="completed-tools"><button class="text-button" id="clearCompletedBtn" type="button">Clear completed</button></div>
           <div id="completedList" class="task-list completed-list"></div>
-        </div>
+        </details>
       </div>
     </section>
   </main>
@@ -171,14 +162,14 @@
       <div class="guide-score-key" aria-label="Daily Run points by difficulty">
         <span><strong>Easy</strong> +1</span><span><strong>Medium</strong> +2</span><span><strong>Hard</strong> +3</span>
       </div>
-      <p class="guide-note">Every 6 points raises your Daily Run level and unlocks a five-minute Recharge Pass. Earn 18 points in one day to become Daily Champion for the rest of that day.</p>
+      <p class="guide-note">Every 6 points fills your Daily Run bar and earns you a five-minute break.</p>
       <button class="button button-primary" id="dismissGuide" type="button">Start playing</button>
     </div>
   </div>
 
   <div class="break-timer hidden" id="breakTimer" role="dialog" aria-modal="true" aria-labelledby="breakTimerTitle" aria-hidden="true">
     <div class="break-timer-card">
-      <p class="eyebrow">RECHARGE PASS</p>
+      <p class="eyebrow">BREAK TIME</p>
       <h2 id="breakTimerTitle">Take five—you earned it.</h2>
       <strong id="breakCountdown" aria-live="polite">5:00</strong>
       <p>Stretch, grab water, or rest your eyes. Your tasks will be waiting.</p>
