@@ -35,8 +35,8 @@
     gameStage: $('#gameStage'), gameBoard: $('#gameBoard'), emptyGame: $('#emptyGame'),
     resultCard: $('#resultCard'), resultTask: $('#resultTask'), resultDifficulty: $('#resultDifficulty'),
     taskForm: $('#taskForm'), taskInput: $('#taskInput'), difficultyInput: $('#difficultyInput'),
-    taskList: $('#taskList'), completedList: $('#completedList'), taskCount: $('#taskCount'),
-    doneCount: $('#doneCount'), readyBadge: $('#readyBadge'), toast: $('#toast'),
+    taskList: $('#taskList'), completedList: $('#completedList'),
+    readyBadge: $('#readyBadge'), toast: $('#toast'),
     streakCount: $('#streakCount'), soundToggle: $('#soundToggle'), rewardStrip: $('#rewardStrip'), completedCount: $('#completedCount'),
     siteGuide: $('#siteGuide'), closeGuide: $('#closeGuide'), dismissGuide: $('#dismissGuide'), closeResult: $('#closeResult'),
     breakTimer: $('#breakTimer'), breakCountdown: $('#breakCountdown'), endBreakBtn: $('#endBreakBtn'),
@@ -256,8 +256,6 @@
   function render({ preserveGame = false } = {}) {
     syncDailyStats();
     save();
-    els.taskCount.textContent = state.tasks.length;
-    els.doneCount.textContent = state.completed.length;
     els.streakCount.textContent = state.stats.streak || 0;
     els.readyBadge.textContent = state.tasks.length;
     els.soundToggle.classList.toggle('muted', !state.soundEnabled);

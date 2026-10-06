@@ -16,28 +16,21 @@
   <a class="skip-link" href="#tasks" id="skipToTasks">Skip to task list</a>
   <div class="page-glow" aria-hidden="true"></div>
   <header class="topbar">
-    <a class="brand" href="#arcade" aria-label="Taskcade home">
-      <span class="brand-mark">T</span>
-      <span>TASKCADE</span>
-    </a>
+    <a class="brand" href="#arcade" aria-label="Taskcade home"><img class="brand-logo" src="assets/ui/logo.png" alt="Taskcade" width="62" height="11"></a>
+    <nav class="section-bar" role="tablist" aria-label="Choose a section">
+      <button class="section-tab active" role="tab" aria-selected="true" data-view="tasks" type="button"><img class="tab-icon" src="assets/ui/icon-tasks.png" alt="" width="9" height="9"><span class="tab-label">Task List</span><span class="tab-label-short" aria-hidden="true">Tasks</span></button>
+      <span class="nav-divider" aria-hidden="true">ARCADE</span>
+      <button class="section-tab" role="tab" aria-selected="false" data-view="balloon" type="button"><img class="tab-icon" src="assets/ui/icon-balloon.png" alt="" width="9" height="9"><span class="tab-label">Balloon Darts</span><span class="tab-label-short" aria-hidden="true">Darts</span></button>
+      <button class="section-tab" role="tab" aria-selected="false" data-view="claw" type="button"><img class="tab-icon" src="assets/ui/icon-claw.png" alt="" width="9" height="9"><span class="tab-label">Claw Machine</span><span class="tab-label-short" aria-hidden="true">Claw</span></button>
+      <button class="section-tab" role="tab" aria-selected="false" data-view="wheel" type="button"><img class="tab-icon" src="assets/ui/icon-wheel.png" alt="" width="9" height="9"><span class="tab-label">Prize Wheel</span><span class="tab-label-short" aria-hidden="true">Wheel</span></button>
+    </nav>
     <div class="header-tools">
-      <div class="scoreboard" aria-label="Task progress">
-        <span><strong id="taskCount">0</strong> READY</span>
-        <span><strong id="doneCount">0</strong> CLEARED</span>
-        <span><strong id="streakCount">0</strong> DAY STREAK</span>
-      </div>
+      <div class="streak" aria-label="Day streak"><img src="assets/ui/icon-streak.png" alt="" width="9" height="9"><strong id="streakCount">0</strong><span>DAY STREAK</span></div>
       <button class="sound-toggle" id="soundToggle" type="button" aria-pressed="true" aria-label="Mute game sounds">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path class="speaker-shape" d="M4 9v6h4l5 4V5L8 9H4Z"/><path class="sound-wave" d="M16 8.2a5 5 0 0 1 0 7.6M18.6 5.7a8.5 8.5 0 0 1 0 12.6"/></svg>
       </button>
     </div>
   </header>
-
-  <nav class="section-bar" role="tablist" aria-label="Choose a section">
-    <button class="section-tab active" role="tab" aria-selected="true" data-view="tasks" type="button"><span>Task List</span></button>
-    <button class="section-tab" role="tab" aria-selected="false" data-view="balloon" type="button"><span>Balloon Darts</span></button>
-    <button class="section-tab" role="tab" aria-selected="false" data-view="claw" type="button"><span>Claw Machine</span></button>
-    <button class="section-tab" role="tab" aria-selected="false" data-view="wheel" type="button"><span>Prize Wheel</span></button>
-  </nav>
 
   <main>
     <section class="arcade-shell hidden" id="arcade" aria-label="Task arcade">
