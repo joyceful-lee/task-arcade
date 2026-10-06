@@ -110,7 +110,7 @@
       const presets = {
         click: [[420,.045,0]], add: [[520,.07,0],[700,.08,.07]], throw: [[220,.08,0],[340,.1,.05]],
         miss: [[210,.12,0],[150,.16,.1]], grab: [[180,.08,0],[240,.09,.08]],
-        win: [[523,.09,0],[659,.09,.1],[784,.16,.2]], tick: [[920,.025,0]], aim: [[1320,.014,0]], unlock: [[660,.08,0],[880,.1,.09],[1100,.16,.18]]
+        win: [[523,.09,0],[659,.09,.1],[784,.16,.2]], tick: [[920,.025,0]], aim: [[1320,.014,0]], bonk: [[300,.018,0]], unlock: [[660,.08,0],[880,.1,.09],[1100,.16,.18]]
       };
       (presets[kind] || presets.click).forEach(([frequency,duration,delay]) => {
         const oscillator = audioContext.createOscillator();
@@ -137,6 +137,15 @@
       ],
       // Chords per bar: C F G C | Am F G C. Bass is root/fifth quarter notes.
       bass: [48,55,48,55, 41,48,41,48, 43,50,43,50, 48,55,48,55, 45,52,45,52, 41,48,41,48, 43,50,43,50, 48,55,48,null]
+    },
+    claw: {
+      bpm: 126,
+      lead: [
+        69,72,76,72,81,76,72,76, 77,72,69,72,77,81,77,72, 76,79,84,79,76,72,76,79, 79,83,86,83,79,74,71,74,
+        81,79,76,79,81,84,81,76, 77,76,72,76,77,81,84,81, 79,77,74,71,74,77,79,83, 81,null,76,null,69,null,null,null
+      ],
+      // Chords per bar: Am F C G | Am F G Am.
+      bass: [45,52,45,52, 41,48,41,48, 48,55,48,55, 43,50,43,50, 45,52,45,52, 41,48,41,48, 43,50,43,50, 45,52,45,null]
     }
   };
   const music = { track: null, timer: 0, step: 0, nextTime: 0, gain: null };
@@ -536,7 +545,7 @@
       title: 'Balloon Darts',
       marquee: spriteUrl('marquee'),
       screen,
-      controls: `<div class="dart-key-controls" aria-label="Dart aim controls"><button type="button" class="arcade-button" data-dart-angle="-8" aria-label="Aim dart left">◀</button><button type="button" class="arcade-button fire" id="fireDart">FIRE</button><button type="button" class="arcade-button" data-dart-angle="8" aria-label="Aim dart right">▶</button></div>`,
+      controls: `<div class="cabinet-controls dart-key-controls" aria-label="Dart aim controls"><button type="button" class="arcade-button" data-dart-angle="-8" aria-label="Aim dart left">◀</button><button type="button" class="arcade-button fire" id="fireDart">FIRE</button><button type="button" class="arcade-button" data-dart-angle="8" aria-label="Aim dart right">▶</button></div>`,
       instructions: 'Pull back to aim • release to throw'
     });
     applyBalloonDartSprites();
@@ -892,42 +901,353 @@
     });
   }
 
+  // Claw Machine: gachapon balls with 2D circle physics, drawn as 1:1 PNG sprites from
+  // assets/claw-machine/ onto a low-res canvas that CSS scales up by --px (one art pixel).
+  // All coordinates below are in art pixels; velocities are art pixels per 60fps frame.
+  const CLAW_DIR = 'assets/claw-machine/';
+  const gachaColors = ['pink', 'yellow', 'green', 'blue', 'purple'];
+  const CLAW_BALL_COUNT = 30;
+  // Two ball sizes (radius 6 and 9) keep the pile from packing into a regular grid. About 30%
+  // of balls are large; which ones is fixed by index so the machine looks the same each visit.
+  const BALL_SIZES = { small: 6, large: 9 };
+  const makeBall = (index, x, y) => {
+    const size = (index * 7 + 3) % 10 < 3 ? 'large' : 'small';
+    const color = gachaColors[index % gachaColors.length];
+    const r = BALL_SIZES[size];
+    return { index, size, r, mass: r * r, x, y, vx: 0, vy: 0, sprite: size === 'large' ? `ball-large-${color}` : `ball-${color}` };
+  };
+  const clawImages = Object.fromEntries(['claw-open', 'claw-closed', ...gachaColors.flatMap(color => [`ball-${color}`, `ball-large-${color}`])].map(name => {
+    const image = new Image();
+    image.src = `${CLAW_DIR}${name}.png`;
+    return [name, image];
+  }));
+  const clawPhysics = { gravity: .09, bounce: .35, wallBounce: .4, rollFriction: .985, airDrag: .999, substeps: 4 };
+  const clawTiming = { dropSpeed: 1, liftSpeed: .8, moveSpeed: 1.2, closeFrames: 16, openFrames: 12 };
+  let clawWorld = null;
+
   function renderClaw() {
-    const prizeLayout = [
-      [2,4,-11,'capsule'],[13,28,7,'star'],[24,2,-5,'block'],[35,30,13,'capsule'],[46,5,-8,'star'],[57,27,5,'block'],[68,2,-14,'capsule'],[79,28,9,'star'],[90,5,-6,'block'],
-      [7,58,12,'star'],[18,51,-9,'capsule'],[30,61,6,'block'],[42,50,-13,'capsule'],[54,63,10,'star'],[66,53,-4,'block'],[77,62,14,'capsule'],[87,51,-8,'star'],[95,60,5,'capsule'],
-      [1,89,8,'block'],[11,94,-12,'capsule'],[22,86,14,'star'],[33,96,-7,'block'],[45,87,10,'capsule'],[56,96,-14,'star'],[68,88,6,'block'],[79,97,-9,'capsule'],[90,87,12,'star'],[38,71,4,'star'],[61,74,-6,'capsule']
-    ];
-    els.gameBoard.innerHTML = `<div class="claw-scene" aria-label="Claw machine game">
-      <div class="claw-cabinet"><div class="cabinet-back" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="cabinet-ceiling" aria-hidden="true"></div><div class="cabinet-side left" aria-hidden="true"></div><div class="cabinet-side right" aria-hidden="true"></div><div class="cabinet-floor" aria-hidden="true"></div><div class="glass-shine" aria-hidden="true"></div><div class="claw-track"></div><div class="claw" id="claw" style="left:${state.clawX}%"><div class="cable"></div><div class="claw-head"></div><i class="claw-prong left"></i><i class="claw-prong right"></i></div>
-      <div class="balls-bin">${prizeLayout.map((item,i) => state.clawDepleted.includes(i) ? '' : `<div class="prize-item ${item[3]} tone-${i % 5}" data-prize="${i}" aria-label="Arcade prize" style="--prize-left:${item[0]}%;--prize-bottom:${item[1]}px;--prize-rotation:${item[2]}deg"></div>`).join('')}</div></div>
-      <div class="claw-controls"><div class="control-deck">
-        <button class="control-button move" data-move="-3" aria-label="Move claw left"><span>◀</span></button>
+    els.gameStage.classList.add('has-cabinet');
+    const screen = `<div class="claw-scene" aria-label="Claw machine game" style="--px:${scenePixelSize(els.gameBoard.clientWidth)}px"><canvas class="claw-canvas" aria-hidden="true"></canvas></div>`;
+    els.gameBoard.innerHTML = arcadeCabinet({
+      title: 'Claw Machine',
+      marquee: `url('${CLAW_DIR}marquee.png')`,
+      screen,
+      controls: `<div class="cabinet-controls" aria-label="Claw controls">
+        <button type="button" class="arcade-button" data-move="-3" aria-label="Move claw left">◀</button>
         <div class="joystick" id="clawJoystick" role="slider" tabindex="0" aria-label="Move claw" aria-orientation="horizontal" aria-valuemin="8" aria-valuemax="92" aria-valuenow="${Math.round(state.clawX)}"><i></i><b></b></div>
-        <button class="control-button move" data-move="3" aria-label="Move claw right"><span>▶</span></button>
-        <button class="control-button drop" id="dropClaw"><span>DROP</span></button>
-      </div></div>
-    </div>`;
+        <button type="button" class="arcade-button" data-move="3" aria-label="Move claw right">▶</button>
+        <button type="button" class="arcade-button fire" id="dropClaw">DROP</button>
+      </div>`,
+      instructions: 'Line up the claw • drop to grab a ball'
+    });
     els.gameBoard.querySelectorAll('[data-move]').forEach(btn => btn.addEventListener('click', () => moveClaw(Number(btn.dataset.move))));
-    setupPrizeGleam();
+    setupClawWorld();
     setupClawJoystick();
     $('#dropClaw').addEventListener('click', dropClaw);
   }
 
-  function setupPrizeGleam() {
-    const cabinet = els.gameBoard.querySelector('.claw-cabinet');
-    if (!cabinet) return;
-    const shimmer = () => {
-      if (!cabinet.isConnected) return;
-      const prizes = [...cabinet.querySelectorAll('.prize-item:not(.grabbed):not(.won)')];
-      const prize = prizes[Math.floor(Math.random() * prizes.length)];
-      if (prize) {
-        prize.classList.add('gleam');
-        setTimeout(() => prize.classList.remove('gleam'), 950);
-      }
-      setTimeout(shimmer, 1500 + Math.random() * 2400);
+  // Seeded random so the pile settles into the same layout every time the game is shown.
+  function seededRandom(seed) {
+    return () => {
+      seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t ^= t + Math.imul(t ^ t >>> 7, 61 | t);
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
-    setTimeout(shimmer, 700 + Math.random() * 1000);
+  }
+
+  function setupClawWorld() {
+    const scene = els.gameBoard.querySelector('.claw-scene');
+    const canvas = scene.querySelector('.claw-canvas');
+    const observer = new ResizeObserver(() => {
+      if (!scene.isConnected) { observer.disconnect(); return; }
+      const px = scenePixelSize(scene.clientWidth);
+      const w = Math.ceil(scene.clientWidth / px), h = Math.ceil(scene.clientHeight / px);
+      if (!w || !h || (clawWorld?.canvas === canvas && clawWorld.w === w && clawWorld.h === h)) return;
+      scene.style.setProperty('--px', `${px}px`);
+      canvas.width = w; canvas.height = h;
+      canvas.style.width = `${w * px}px`; canvas.style.height = `${h * px}px`;
+      if (clawWorld?.canvas === canvas && clawWorld.claw.mode !== 'idle') state.busy = false;
+      clawWorld = createClawWorld(canvas, w, h);
+    });
+    observer.observe(scene);
+  }
+
+  function createClawWorld(canvas, w, h) {
+    const floorY = h - 6, wallL = 3, wallR = w - 3;
+    const chuteR = wallL + 22, barrierX = chuteR + 1;
+    // The chute wall stands well above the settled pile so balls can't spill into it. The pile
+    // height is estimated from the balls' total area spread over the floor (about 80% packing).
+    const pileArea = Array.from({ length: CLAW_BALL_COUNT }, (_, i) => Math.PI * makeBall(i).r ** 2).reduce((a, b) => a + b, 0);
+    const barrierTop = floorY - Math.max(38, Math.round(pileArea / ((wallR - chuteR) * .8)) + 20);
+    const world = {
+      canvas, w, h, floorY, wallL, wallR, chuteR, barrierX, barrierTop,
+      railY: 6, homeY: 9, chuteX: wallL + 11, minX: chuteR + 11, maxX: wallR - 9,
+      balls: [], quiet: true, lastBonk: 0,
+      claw: { x: 0, y: 9, mode: 'idle', open: true, held: null, outcome: null, timer: 0, slipAt: 0, slipped: false }
+    };
+    world.claw.x = clawTargetX(world);
+    world.backdrop = paintClawBackdrop(world);
+    world.foreground = paintClawForeground(world);
+    // Drop the balls in from scattered heights and let them settle into a random-looking heap.
+    const random = seededRandom(7);
+    for (let i = 0; i < CLAW_BALL_COUNT; i++) {
+      if (state.clawDepleted.includes(i) || heldClawPrize?.prizeIndex === i) continue;
+      const ball = makeBall(i, 0, floorY - 12 - i * 8 - random() * 6);
+      ball.x = chuteR + 3 + ball.r + random() * (wallR - chuteR - 6 - ball.r * 2);
+      world.balls.push(ball);
+    }
+    for (let i = 0; i < 600; i++) stepClawWorld(world);
+    world.balls.forEach(ball => { ball.vx = 0; ball.vy = 0; });
+    world.quiet = false;
+    world.returnBall = index => {
+      if (world.balls.some(ball => ball.index === index)) return;
+      const ball = makeBall(index, world.minX + Math.random() * (world.maxX - world.minX), -12);
+      ball.vx = (Math.random() - .5) * .6;
+      world.balls.push(ball);
+    };
+    let last = performance.now(), pending = 0;
+    const loop = now => {
+      if (!canvas.isConnected || clawWorld !== world) return;
+      pending = Math.min(pending + (now - last) / (1000 / 60), 4);
+      last = now;
+      while (pending >= 1) { stepClawWorld(world); updateClaw(world); pending -= 1; }
+      drawClawWorld(world);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+    return world;
+  }
+
+  const clawTargetX = world => world.minX + (state.clawX - 8) / 84 * (world.maxX - world.minX);
+
+  // Kinematic colliders for the claw: the head plus the inner edge of each prong. While the
+  // claw descends and closes only the head collides, so it settles onto the pile instead of
+  // parting the balls with its prongs.
+  function clawColliders(claw) {
+    const head = { x: claw.x, y: claw.y + 2, r: 4 };
+    if (claw.mode === 'down' || claw.mode === 'close') return [head];
+    const spread = claw.open ? 7 : 6, tip = claw.open ? 4.5 : 3;
+    return [
+      head,
+      { x: claw.x - spread, y: claw.y + 7, r: 1.5 }, { x: claw.x + spread, y: claw.y + 7, r: 1.5 },
+      { x: claw.x - tip, y: claw.y + 12, r: 1.5 }, { x: claw.x + tip, y: claw.y + 12, r: 1.5 }
+    ];
+  }
+
+  function stepClawWorld(world) {
+    const { gravity, bounce, wallBounce, rollFriction, airDrag, substeps } = clawPhysics;
+    const dt = 1 / substeps;
+    const held = world.claw.held;
+    const free = world.balls.filter(ball => ball !== held);
+    const colliders = clawColliders(world.claw);
+    for (let s = 0; s < substeps; s++) {
+      free.forEach(ball => {
+        ball.vy += gravity * dt;
+        ball.vx *= Math.pow(airDrag, dt); ball.vy *= Math.pow(airDrag, dt);
+        ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+      });
+      // Ball-ball contacts: separate overlapping balls and exchange momentum along the normal,
+      // split by mass (area). The held ball moves with the claw, so it acts as infinitely heavy.
+      for (let a = 0; a < world.balls.length; a++) {
+        for (let b = a + 1; b < world.balls.length; b++) {
+          const A = world.balls[a], B = world.balls[b];
+          const dx = B.x - A.x, dy = B.y - A.y, dist = Math.hypot(dx, dy), reach = A.r + B.r;
+          if (dist >= reach || dist === 0) continue;
+          const nx = dx / dist, ny = dy / dist, overlap = reach - dist;
+          const invA = A === held ? 0 : 1 / A.mass, invB = B === held ? 0 : 1 / B.mass;
+          const shareA = invA / (invA + invB), shareB = invB / (invA + invB);
+          A.x -= nx * overlap * shareA; A.y -= ny * overlap * shareA;
+          B.x += nx * overlap * shareB; B.y += ny * overlap * shareB;
+          const closing = (B.vx - A.vx) * nx + (B.vy - A.vy) * ny;
+          if (closing >= 0) continue;
+          const impulse = -(1 + bounce) * closing / (invA + invB);
+          A.vx -= impulse * nx * invA; A.vy -= impulse * ny * invA;
+          B.vx += impulse * nx * invB; B.vy += impulse * ny * invB;
+          if (-closing > .7) clawBonk(world);
+        }
+      }
+      free.forEach(ball => {
+        collideCircle(ball, colliders);
+        // Side walls.
+        if (ball.x < world.wallL + ball.r) { ball.x = world.wallL + ball.r; ball.vx = Math.abs(ball.vx) * wallBounce; }
+        if (ball.x > world.wallR - ball.r) { ball.x = world.wallR - ball.r; ball.vx = -Math.abs(ball.vx) * wallBounce; }
+        // The chute wall: a thin vertical capsule from barrierTop down to the floor.
+        const nearestY = Math.max(world.barrierTop, Math.min(world.floorY, ball.y));
+        const bx = ball.x - world.barrierX, by = ball.y - nearestY, bd = Math.hypot(bx, by);
+        if (bd < ball.r + 1 && bd > 0) {
+          const nx = bx / bd, ny = by / bd;
+          ball.x += nx * (ball.r + 1 - bd); ball.y += ny * (ball.r + 1 - bd);
+          const vn = ball.vx * nx + ball.vy * ny;
+          if (vn < 0) { ball.vx -= (1 + wallBounce) * vn * nx; ball.vy -= (1 + wallBounce) * vn * ny; if (-vn > .7) clawBonk(world); }
+        }
+        // Floor everywhere except over the chute hole.
+        if (ball.x > world.chuteR && ball.y > world.floorY - ball.r) {
+          ball.y = world.floorY - ball.r;
+          if (ball.vy > .7) clawBonk(world);
+          ball.vy = ball.vy > .2 ? -ball.vy * bounce : 0;
+          ball.vx *= Math.pow(rollFriction, dt);
+        }
+      });
+    }
+    // Balls that fall out through the chute: the delivered prize resolves the win,
+    // anything else that tumbles in is dropped back in from the top.
+    world.balls.slice().forEach(ball => {
+      if (ball.y < world.h + ball.r * 2) return;
+      world.balls.splice(world.balls.indexOf(ball), 1);
+      if (ball.delivering) deliverClawPrize(world, ball);
+      else world.returnBall(ball.index);
+    });
+  }
+
+  function collideCircle(ball, colliders) {
+    colliders.forEach(c => {
+      const dx = ball.x - c.x, dy = ball.y - c.y, dist = Math.hypot(dx, dy), min = ball.r + c.r;
+      if (dist >= min || dist === 0) return;
+      const nx = dx / dist, ny = dy / dist;
+      ball.x += nx * (min - dist); ball.y += ny * (min - dist);
+      const vn = ball.vx * nx + ball.vy * ny;
+      if (vn < 0) { ball.vx -= (1 + clawPhysics.bounce) * vn * nx; ball.vy -= (1 + clawPhysics.bounce) * vn * ny; }
+    });
+  }
+
+  function clawBonk(world) {
+    const now = performance.now();
+    if (world.quiet || now - world.lastBonk < 90) return;
+    world.lastBonk = now;
+    playSound('bonk');
+  }
+
+  // The claw's state machine: idle → down → close → up → (carry → release over the chute) → idle.
+  function updateClaw(world) {
+    const claw = world.claw;
+    const approach = (from, to, speed) => from + Math.max(-speed, Math.min(speed, to - from));
+    if (claw.mode === 'idle') { claw.x = approach(claw.x, clawTargetX(world), clawTiming.moveSpeed); return; }
+    if (claw.mode === 'down') {
+      claw.y += clawTiming.dropSpeed;
+      const touching = world.balls.some(ball => Math.hypot(ball.x - claw.x, ball.y - (claw.y + 2)) <= ball.r + 4.5);
+      if (!touching && claw.y + 13 < world.floorY) return;
+      // Settled: close the prongs around the ball nearest the claw's center, if any.
+      const ball = world.balls
+        .filter(b => Math.abs(b.x - claw.x) <= b.r + 1 && b.y >= claw.y + 2 && b.y <= claw.y + 10 + b.r)
+        .sort((a, b) => Math.abs(a.x - claw.x) - Math.abs(b.x - claw.x))[0];
+      claw.held = ball || null;
+      // Big balls are harder to hold onto, like a real claw machine.
+      const winChance = ball?.size === 'large' ? .42 : .64;
+      claw.outcome = !ball ? null : !state.tasks.length ? 'empty' : Math.random() < winChance ? 'win' : 'slip';
+      claw.slipAt = claw.y - 8 - Math.random() * Math.max(4, claw.y - world.homeY - 12);
+      claw.slipped = false;
+      claw.mode = 'close'; claw.timer = clawTiming.closeFrames; claw.open = false;
+      return;
+    }
+    if (claw.mode === 'close') {
+      // The closing prongs pull the ball in to the claw's center over the close frames.
+      if (claw.held) {
+        const pull = 1 / Math.max(1, claw.timer);
+        claw.held.x += (claw.x - claw.held.x) * pull;
+        claw.held.y += (claw.y + 3 + claw.held.r - claw.held.y) * pull;
+        claw.held.vx = 0; claw.held.vy = 0;
+      }
+      if (--claw.timer > 0) return;
+      if (!claw.held) claw.open = true;
+      claw.mode = 'up';
+      return;
+    }
+    if (claw.held) Object.assign(claw.held, { x: claw.x, y: claw.y + 3 + claw.held.r, vx: 0, vy: 0 });
+    if (claw.mode === 'up') {
+      claw.y = Math.max(world.homeY, claw.y - clawTiming.liftSpeed);
+      if (claw.held) claw.held.vy = -clawTiming.liftSpeed;
+      if (claw.outcome === 'slip' && claw.held && claw.y <= claw.slipAt) {
+        claw.held.vx = (Math.random() - .5) * .8;
+        claw.held = null; claw.slipped = true; claw.open = true;
+        playSound('miss');
+      }
+      if (claw.y > world.homeY) return;
+      if (claw.held && claw.outcome === 'win') { claw.mode = 'carry'; return; }
+      if (claw.held) { claw.held.vx = (Math.random() - .5) * .6; claw.held = null; }
+      claw.open = true; claw.mode = 'idle'; state.busy = false;
+      if (claw.outcome === 'empty') { playSound('click'); promptAddTask(); }
+      else if (claw.slipped) showToast('It slipped! Line up and try another drop.');
+      else { playSound('miss'); showMissImpact(); showToast('No prize — line up over a ball and try again!'); }
+      return;
+    }
+    if (claw.mode === 'carry') {
+      claw.x = approach(claw.x, world.chuteX, clawTiming.moveSpeed);
+      if (claw.x !== world.chuteX) return;
+      claw.mode = 'release'; claw.timer = clawTiming.openFrames; claw.open = true;
+      claw.held.delivering = true; claw.held = null;
+      return;
+    }
+    if (claw.mode === 'release' && --claw.timer <= 0) claw.mode = 'waiting';
+  }
+
+  function deliverClawPrize(world, ball) {
+    world.claw.mode = 'idle';
+    state.busy = false;
+    const task = randomTask();
+    if (!task) return world.returnBall(ball.index);
+    heldClawPrize = { prizeIndex: ball.index, taskId: task.id };
+    playSound('win');
+    setSelected(task.id);
+  }
+
+  function drawClawWorld(world) {
+    const ctx = world.canvas.getContext('2d');
+    const draw = (name, x, y) => { const image = clawImages[name]; if (image.complete && image.naturalWidth) ctx.drawImage(image, Math.round(x), Math.round(y)); };
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(world.backdrop, 0, 0);
+    world.balls.forEach(ball => { if (ball !== world.claw.held) draw(ball.sprite, ball.x - ball.r, ball.y - ball.r); });
+    const claw = world.claw, cx = Math.round(claw.x), cy = Math.round(claw.y);
+    ctx.fillStyle = '#7c7c7c'; ctx.fillRect(cx, world.railY + 1, 1, cy - world.railY - 1);
+    ctx.fillStyle = '#bcbcbc'; ctx.fillRect(cx + 1, world.railY + 1, 1, cy - world.railY - 1);
+    if (claw.held) draw(claw.held.sprite, claw.held.x - claw.held.r, claw.held.y - claw.held.r);
+    draw(claw.open ? 'claw-open' : 'claw-closed', cx - 8, cy);
+    ctx.drawImage(world.foreground, 0, 0);
+  }
+
+  // Static machine interior in NES colors: back wall, rail, neon trim, floor bed, chute.
+  function paintClawBackdrop(world) {
+    const { w, h, floorY, wallL, wallR, chuteR, barrierTop, railY } = world;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const rect = (x, y, rw, rh, color) => { ctx.fillStyle = color; ctx.fillRect(x, y, rw, rh); };
+    rect(0, 0, w, h, '#0000bc');
+    for (let x = wallL + 12; x < wallR; x += 24) rect(x, railY + 2, 1, floorY - railY - 2, '#4428bc');
+    // Light spill rising from the floor, dithered into the back wall.
+    for (let y = floorY - 30; y < floorY; y++) {
+      const level = (y - (floorY - 30)) / 30;
+      for (let x = y % 2; x < w; x += 2) if (level > .5 || (x + y) % 4 === 0) rect(x, y, 1, 1, '#4428bc');
+    }
+    rect(0, 0, w, railY + 2, '#000000');
+    rect(0, railY, w, 1, '#bcbcbc'); rect(0, railY + 1, w, 1, '#7c7c7c');
+    for (let x = 4; x < w; x += 12) rect(x, railY, 1, 1, '#fcfcfc');
+    rect(0, 0, wallL, h, '#000000'); rect(wallR, 0, w - wallR, h, '#000000');
+    rect(wallL - 1, railY + 2, 1, h, '#d800cc'); rect(wallR, railY + 2, 1, h, '#3cbcfc');
+    // Chute shaft with an arrow pointing into it.
+    rect(wallL, barrierTop, chuteR - wallL, h - barrierTop, '#000000');
+    const arrowX = world.chuteX, arrowY = barrierTop - 14;
+    [[-1, 0, 2, 5], [-4, 5, 8, 1], [-3, 6, 6, 1], [-2, 7, 4, 1], [-1, 8, 2, 1]].forEach(([dx, dy, rw, rh]) => rect(arrowX + dx, arrowY + dy, rw, rh, '#f8b800'));
+    rect(chuteR + 2, floorY, w, 1, '#d800cc');
+    rect(chuteR + 2, floorY + 1, w, h, '#000000');
+    for (let x = chuteR + 4; x < wallR; x += 6) rect(x, floorY + 3, 2, 1, '#4428bc');
+    return canvas;
+  }
+
+  // Drawn over the balls: the glass chute wall and the prize door the ball drops behind.
+  function paintClawForeground(world) {
+    const { w, h, floorY, wallL, chuteR, barrierX, barrierTop } = world;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const rect = (x, y, rw, rh, color) => { ctx.fillStyle = color; ctx.fillRect(x, y, rw, rh); };
+    rect(barrierX - 1, barrierTop, 3, h - barrierTop, '#3cbcfc');
+    rect(barrierX, barrierTop, 1, h - barrierTop, '#a4e4fc');
+    rect(barrierX - 1, barrierTop - 1, 3, 1, '#fcfcfc');
+    rect(wallL, floorY - 2, chuteR - wallL, h - floorY + 2, '#000000');
+    rect(wallL, floorY - 2, chuteR - wallL, 1, '#f8b800');
+    for (let x = wallL + 2; x < chuteR - 1; x += 3) rect(x, floorY + 1, 1, 2, '#ac7c00');
+    return canvas;
   }
 
   function replenishClawPrizes(amount = 3) {
@@ -935,21 +1255,16 @@
     state.clawDepleted.splice(0, Math.min(amount, state.clawDepleted.length));
   }
 
+  // Closing the result without completing the task drops the won ball back into the machine.
   function releaseHeldClawPrize() {
     if (!heldClawPrize) return;
-    const { element } = heldClawPrize;
-    element.classList.remove('grabbed', 'lifting', 'slipping', 'won');
-    element.style.removeProperty('--grab-x');
-    element.style.removeProperty('--lift-y');
-    $('#claw')?.classList.remove('closing');
+    if (clawWorld?.canvas.isConnected) clawWorld.returnBall(heldClawPrize.prizeIndex);
     heldClawPrize = null;
   }
 
   function setClawPosition(value) {
     state.clawX = Math.max(8, Math.min(92, value));
-    const claw = $('#claw');
     const joystick = $('#clawJoystick');
-    if (claw) claw.style.left = `${state.clawX}%`;
     if (joystick) joystick.setAttribute('aria-valuenow', String(Math.round(state.clawX)));
   }
 
@@ -960,8 +1275,8 @@
 
   function setupClawJoystick() {
     const joystick = $('#clawJoystick');
-    const cabinet = els.gameBoard.querySelector('.claw-cabinet');
-    if (!joystick || !cabinet) return;
+    const screen = els.gameBoard.querySelector('.cabinet-screen');
+    if (!joystick || !screen) return;
     let dragging = false, startPointerX = 0, startClawX = state.clawX;
 
     const release = event => {
@@ -987,7 +1302,7 @@
     });
     joystick.addEventListener('pointermove', event => {
       if (!dragging || state.busy) return;
-      const delta = (event.clientX - startPointerX) / cabinet.clientWidth * 100;
+      const delta = (event.clientX - startPointerX) / screen.clientWidth * 100;
       setClawPosition(startClawX + delta);
       joystick.style.setProperty('--joystick-tilt', `${Math.max(-18, Math.min(18, delta * .9))}deg`);
       joystick.style.setProperty('--joystick-nudge', `${Math.max(-5, Math.min(5, delta * .22))}px`);
@@ -997,78 +1312,18 @@
     joystick.addEventListener('keydown', event => {
       if (event.key === 'ArrowLeft') { event.preventDefault(); moveClaw(-3); joystick.style.setProperty('--joystick-tilt', '-12deg'); joystick.style.setProperty('--joystick-nudge', '-3px'); }
       if (event.key === 'ArrowRight') { event.preventDefault(); moveClaw(3); joystick.style.setProperty('--joystick-tilt', '12deg'); joystick.style.setProperty('--joystick-nudge', '3px'); }
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); dropClaw(); }
     });
     joystick.addEventListener('keyup', () => { joystick.style.setProperty('--joystick-tilt', '0deg'); joystick.style.setProperty('--joystick-nudge', '0px'); });
   }
 
   function dropClaw() {
-    if (state.busy) return;
+    const claw = clawWorld?.claw;
+    if (state.busy || !claw || claw.mode !== 'idle') return;
     state.busy = true;
     playSound('grab');
-    const claw = $('#claw');
-    claw.classList.add('dropping','opening');
-    const prizes = [...els.gameBoard.querySelectorAll('[data-prize]:not(.won):not(.grabbed)')];
-    let hit = null;
-    let wonTask = null;
-    setTimeout(() => {
-      claw.classList.remove('opening');
-      claw.classList.add('closing');
-    }, 610);
-    setTimeout(() => {
-      const leftProng = claw.querySelector('.claw-prong.left').getBoundingClientRect();
-      const rightProng = claw.querySelector('.claw-prong.right').getBoundingClientRect();
-      const leftTip = leftProng.right - 4;
-      const rightTip = rightProng.left + 4;
-      const gripLeft = Math.min(leftTip, rightTip) - 16;
-      const gripRight = Math.max(leftTip, rightTip) + 16;
-      const tipY = Math.max(leftProng.bottom, rightProng.bottom);
-      const gripTop = tipY - 32;
-      const gripBottom = tipY + 12;
-      const gripCenter = (gripLeft + gripRight) / 2;
-      hit = prizes.filter(prize => {
-        const r = prize.getBoundingClientRect();
-        return r.right >= gripLeft && r.left <= gripRight && r.bottom >= gripTop && r.top <= gripBottom;
-      }).sort((a,b) => {
-        const aRect = a.getBoundingClientRect();
-        const bRect = b.getBoundingClientRect();
-        return Math.abs((aRect.left + aRect.width / 2) - gripCenter) - Math.abs((bRect.left + bRect.width / 2) - gripCenter);
-      })[0] || null;
-      if (hit) {
-        const hitRect = hit.getBoundingClientRect();
-        const clawRect = claw.getBoundingClientRect();
-        const hitCenterY = hitRect.top + hitRect.height / 2;
-        // The resting target is fixed inside the retracted prongs, so prizes
-        // finish in the same place regardless of how deep in the pile they began.
-        const restingGripCenterY = clawRect.top + 131;
-        hit.style.setProperty('--grab-x', `${gripCenter - (hitRect.left + hitRect.width / 2)}px`);
-        hit.style.setProperty('--lift-y', `${restingGripCenterY - hitCenterY}px`);
-        hit.classList.add('grabbed');
-        if (state.tasks.length && Math.random() < .58) wonTask = randomTask();
-      }
-    }, 820);
-    setTimeout(() => { claw.classList.remove('dropping'); hit?.classList.add('lifting'); }, 980);
-    setTimeout(() => {
-      if (hit && !wonTask && state.tasks.length) {
-        hit.classList.add('slipping');
-        playSound('miss');
-      }
-    }, 1320);
-    setTimeout(() => {
-      claw.classList.remove('opening','dropping');
-      state.busy = false;
-      if (hit && !state.tasks.length) {
-        claw.classList.remove('closing');
-        hit.classList.remove('grabbed','lifting','slipping');
-        playSound('click');
-        promptAddTask();
-      } else if (hit && wonTask) {
-        heldClawPrize = { element: hit, prizeIndex: Number(hit.dataset.prize), taskId: wonTask.id };
-        playSound('win');
-        setSelected(wonTask.id);
-      }
-      else if (hit) { claw.classList.remove('closing'); hit.classList.remove('grabbed','lifting','slipping'); showToast('It slipped! Line up and try another drop.'); }
-      else { claw.classList.remove('closing'); playSound('miss'); showMissImpact(); showToast('No prize — line up over an object and try again!'); }
-    }, 2320);
+    claw.mode = 'down';
+    claw.open = true;
   }
 
   function renderWheel() {
@@ -1151,16 +1406,10 @@
     const levelAfter = Math.floor((state.stats.dailyPoints || 0) / 6);
     state.completed.unshift({ ...task, completedAt: Date.now() });
     let preserveGame = false;
+    // A won gachapon ball already dropped out through the chute; completing its task keeps it out.
     if (heldClawPrize?.taskId === id) {
-      const { element, prizeIndex } = heldClawPrize;
-      if (!state.clawDepleted.includes(prizeIndex)) state.clawDepleted.push(prizeIndex);
-      element.classList.add('won');
-      preserveGame = state.game === 'claw' && element.isConnected;
-      const heldClaw = $('#claw');
-      setTimeout(() => {
-        element.remove();
-        heldClaw?.classList.remove('closing');
-      }, 280);
+      if (!state.clawDepleted.includes(heldClawPrize.prizeIndex)) state.clawDepleted.push(heldClawPrize.prizeIndex);
+      preserveGame = state.game === 'claw' && !!clawWorld?.canvas.isConnected;
       heldClawPrize = null;
     }
     hideResult();
