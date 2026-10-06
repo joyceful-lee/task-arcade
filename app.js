@@ -36,14 +36,14 @@
     resultCard: $('#resultCard'), resultTask: $('#resultTask'), resultDifficulty: $('#resultDifficulty'),
     taskForm: $('#taskForm'), taskInput: $('#taskInput'), difficultyInput: $('#difficultyInput'),
     taskList: $('#taskList'), completedList: $('#completedList'),
-    readyBadge: $('#readyBadge'), toast: $('#toast'),
+    readyBadge: $('#readyBadge'),
     streakCount: $('#streakCount'), soundToggle: $('#soundToggle'), rewardStrip: $('#rewardStrip'), completedCount: $('#completedCount'),
     siteGuide: $('#siteGuide'), closeGuide: $('#closeGuide'), dismissGuide: $('#dismissGuide'), closeResult: $('#closeResult'),
     breakTimer: $('#breakTimer'), breakCountdown: $('#breakCountdown'), endBreakBtn: $('#endBreakBtn'),
     setupModal: $('#setupModal'), setupTaskForm: $('#setupTaskForm'), setupTaskInput: $('#setupTaskInput'),
     setupDifficultyInput: $('#setupDifficultyInput'), setupTaskList: $('#setupTaskList'),
     setupBadge: $('#setupBadge'), suggestTasksBtn: $('#suggestTasksBtn'), finishSetupBtn: $('#finishSetupBtn'),
-    emptyAddTaskBtn: $('#emptyAddTaskBtn')
+    emptyAddTaskBtn: $('#emptyAddTaskBtn'), startPlayingWrap: $('#startPlayingWrap'), startPlayingBtn: $('#startPlayingBtn')
   };
 
   const difficultyPoints = { easy: 1, medium: 2, hard: 3 };
@@ -75,12 +75,7 @@
   let lastRewardPoints = null;
   let heldClawPrize = null;
 
-  function showToast(message) {
-    els.toast.textContent = message;
-    els.toast.classList.add('show');
-    clearTimeout(showToast.timer);
-    showToast.timer = setTimeout(() => els.toast.classList.remove('show'), 2200);
-  }
+  function showToast() {}
 
   function playSound(kind) {
     if (!state.soundEnabled) return;
@@ -430,6 +425,10 @@
     els.completedCount.textContent = state.completed.length;
     // Only offer clearing when there's something to clear.
     $('#clearTasksBtn').hidden = !state.tasks.length;
+    if (els.startPlayingWrap) {
+      els.startPlayingWrap.hidden = !state.tasks.length;
+      els.startPlayingWrap.classList.toggle('hidden', !state.tasks.length);
+    }
     $('#clearCompletedBtn').hidden = !state.completed.length;
     renderSetupList();
   }
@@ -1686,7 +1685,6 @@
     hideResult();
     celebrate();
     playSound(levelAfter > levelBefore ? 'unlock' : 'win');
-    showToast(levelAfter > levelBefore ? 'Bar full! You earned a 5-minute break.' : `Mission cleared! +${earnedPoints} Daily Run ${earnedPoints === 1 ? 'point' : 'points'}.`);
     render({ preserveGame });
   }
 
@@ -1694,16 +1692,19 @@
     const confettiCount = Math.min(74, 34 + Math.floor((state.stats.dailyPoints || 0) / 6) * 8);
     for (let i = 0; i < confettiCount; i++) {
       const piece = document.createElement('i');
-      piece.className = `confetti confetti-${state.game}`;
+      piece.className = 'confetti';
       const drift = Math.round((Math.random() - .5) * 260);
+      const wide = Math.random() > .55;
       piece.style.left = `${Math.random() * 100}vw`;
       piece.style.setProperty('--confetti-color', colors[i % colors.length]);
-      piece.style.setProperty('--confetti-size', `${12 + Math.random() * 14}px`);
+      piece.style.width = `${wide ? 8 + Math.random() * 6 : 5 + Math.random() * 4}px`;
+      piece.style.height = `${wide ? 10 + Math.random() * 8 : 12 + Math.random() * 10}px`;
       piece.style.setProperty('--drift', `${drift}px`);
-      piece.style.animationDelay = `${Math.random() * .3}s`;
-      piece.style.setProperty('--start-rotation', `${Math.random() * 180}deg`);
+      piece.style.setProperty('--spin', `${480 + Math.random() * 520}deg`);
+      piece.style.animationDelay = `${Math.random() * .35}s`;
+      piece.style.animationDuration = `${1.5 + Math.random() * .7}s`;
       document.body.appendChild(piece);
-      setTimeout(() => piece.remove(), state.game === 'balloon' ? 2500 : 2100);
+      setTimeout(() => piece.remove(), 2400);
     }
   }
 
@@ -1752,8 +1753,7 @@
     if (!state.tasks.length) return;
     playSound('click');
     closeSetup();
-    if (!state.guideSeen) openGuide();
-    else showToast('Arcade loaded. Pick a game!');
+    showToast('Arcade loaded. Pick a game!');
   });
 
   els.setupTaskList.addEventListener('click', event => {
@@ -1784,6 +1784,16 @@
   els.emptyAddTaskBtn.addEventListener('click', () => {
     playSound('click');
     promptAddTask();
+  });
+
+  els.startPlayingBtn.addEventListener('click', () => {
+    if (!state.tasks.length || state.busy) return;
+    playSound('click');
+    const game = ['balloon', 'claw', 'wheel'].includes(state.game) ? state.game : 'balloon';
+    releaseHeldClawPrize();
+    setView(game);
+    hideResult();
+    render();
   });
 
   $('#skipToTasks').addEventListener('click', event => {
@@ -1869,10 +1879,6 @@
 
   render();
   initDifficultyDropdowns();
-  if (!state.setupSeen) openSetup();
-  else {
-    if (state.stats.breakEndsAt > Date.now()) openBreakTimer();
-    if (!state.guideSeen) openGuide();
-  }
+  if (state.stats.breakEndsAt > Date.now()) openBreakTimer();
   registerWebMCP();
 })();

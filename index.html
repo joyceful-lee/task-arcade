@@ -45,16 +45,18 @@
       </div>
 
       <div class="result-modal hidden" id="resultCard" role="dialog" aria-modal="true" aria-labelledby="resultTask" aria-hidden="true" tabindex="-1">
-        <div class="result-card">
-          <button class="result-close" id="closeResult" type="button" aria-label="Close chosen task"></button>
-          <div>
-            <p class="eyebrow">YOUR NEXT MISSION</p>
-            <h2 id="resultTask"></h2>
-            <span class="difficulty-pill" id="resultDifficulty"></span>
+        <div class="result-card arcade-modal-card">
+          <button class="result-close arcade-modal-close" id="closeResult" type="button" aria-label="Close chosen task"></button>
+          <div class="arcade-modal-main">
+            <p class="arcade-modal-label">Your next mission</p>
+            <div class="arcade-modal-readout">
+              <h2 id="resultTask"></h2>
+              <span class="difficulty-pill" id="resultDifficulty"></span>
+            </div>
           </div>
-          <div class="result-actions">
-            <button class="button button-ghost" id="rerollBtn">Pick again</button>
-            <button class="button button-success" id="completeBtn">✓ Mark complete</button>
+          <div class="result-actions arcade-modal-actions">
+            <button type="button" class="arcade-modal-btn arcade-modal-btn-ghost" id="rerollBtn">Pick again</button>
+            <button type="button" class="arcade-modal-btn arcade-modal-btn-primary" id="completeBtn">Mark complete</button>
           </div>
         </div>
       </div>
@@ -65,8 +67,24 @@
 
       <div class="list-card notebook">
         <div class="list-title">
-          <h3>Tasks <span id="readyBadge" class="count-badge">0</span></h3>
-          <button class="text-button danger" id="clearTasksBtn" type="button">Clear all</button>
+          <div class="list-title-heading">
+            <h3>Tasks <span id="readyBadge" class="count-badge">0</span></h3>
+            <div class="play-cta-cabinet" id="startPlayingWrap" hidden>
+              <button type="button" class="play-cta" id="startPlayingBtn" aria-label="Start playing in the arcade">
+                <span class="play-cta-label">Start Playing</span>
+                <svg class="play-cta-arrow" width="8" height="10" viewBox="0 0 8 10" aria-hidden="true">
+                  <rect x="0" y="1" width="2" height="8" fill="#fcfcfc"/>
+                  <rect x="2" y="2" width="2" height="2" fill="#f8d878"/>
+                  <rect x="2" y="4" width="2" height="2" fill="#fcfcfc"/>
+                  <rect x="2" y="6" width="2" height="2" fill="#f8d878"/>
+                  <rect x="4" y="3" width="2" height="2" fill="#f8d878"/>
+                  <rect x="4" y="5" width="2" height="2" fill="#f8d878"/>
+                  <rect x="6" y="4" width="2" height="2" fill="#f8d878"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button class="text-button danger" id="clearTasksBtn" type="button" hidden>Clear all</button>
         </div>
         <form class="task-form" id="taskForm">
           <label class="field task-input-wrap">
@@ -161,16 +179,18 @@
   </div>
 
   <div class="break-timer hidden" id="breakTimer" role="dialog" aria-modal="true" aria-labelledby="breakTimerTitle" aria-hidden="true">
-    <div class="break-timer-card">
-      <p class="eyebrow">BREAK TIME</p>
+    <div class="break-timer-card arcade-modal-card arcade-modal-card-break">
+      <p class="arcade-modal-label">Break time</p>
       <h2 id="breakTimerTitle">Take five—you earned it.</h2>
-      <strong id="breakCountdown" aria-live="polite">5:00</strong>
-      <p>Stretch, grab water, or rest your eyes. Your tasks will be waiting.</p>
-      <button class="button button-primary" id="endBreakBtn" type="button">End break early</button>
+      <div class="arcade-modal-readout arcade-modal-readout-timer">
+        <span class="arcade-modal-readout-caption">Time left</span>
+        <strong id="breakCountdown" aria-live="polite">5:00</strong>
+      </div>
+      <p class="arcade-modal-copy">Stretch, grab water, or rest your eyes. Your tasks will be waiting.</p>
+      <button type="button" class="arcade-modal-btn arcade-modal-btn-primary arcade-modal-btn-wide" id="endBreakBtn">End break early</button>
     </div>
   </div>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
 </body>
 </html>
