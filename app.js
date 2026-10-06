@@ -8,10 +8,14 @@
   ];
 
   const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; } })();
+  const validViews = ['tasks', 'balloon', 'claw', 'wheel'];
+  const validGames = ['balloon', 'claw', 'wheel'];
+  const savedGame = validGames.includes(saved?.game) ? saved.game : 'balloon';
   const state = {
     tasks: Array.isArray(saved?.tasks) ? saved.tasks : [],
     completed: Array.isArray(saved?.completed) ? saved.completed : [],
-    game: saved?.game || 'balloon',
+    game: savedGame,
+    view: validViews.includes(saved?.view) ? saved.view : 'tasks',
     selectedId: null,
     clawX: 50,
     wheelRotation: 0,
@@ -27,6 +31,7 @@
 
   const $ = (s) => document.querySelector(s);
   const els = {
+    arcadeShell: $('#arcade'), taskZone: $('#tasks'),
     gameStage: $('#gameStage'), gameBoard: $('#gameBoard'), emptyGame: $('#emptyGame'),
     resultCard: $('#resultCard'), resultTask: $('#resultTask'), resultDifficulty: $('#resultDifficulty'),
     taskForm: $('#taskForm'), taskInput: $('#taskInput'), difficultyInput: $('#difficultyInput'),
@@ -37,7 +42,8 @@
     breakTimer: $('#breakTimer'), breakCountdown: $('#breakCountdown'), endBreakBtn: $('#endBreakBtn'),
     setupModal: $('#setupModal'), setupTaskForm: $('#setupTaskForm'), setupTaskInput: $('#setupTaskInput'),
     setupDifficultyInput: $('#setupDifficultyInput'), setupTaskList: $('#setupTaskList'),
-    setupBadge: $('#setupBadge'), suggestTasksBtn: $('#suggestTasksBtn'), finishSetupBtn: $('#finishSetupBtn')
+    setupBadge: $('#setupBadge'), suggestTasksBtn: $('#suggestTasksBtn'), finishSetupBtn: $('#finishSetupBtn'),
+    emptyAddTaskBtn: $('#emptyAddTaskBtn')
   };
 
   const difficultyPoints = { easy: 1, medium: 2, hard: 3 };
@@ -49,7 +55,7 @@
   ];
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const escapeHtml = (text) => String(text).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, completed: state.completed, game: state.game, clawDepleted: state.clawDepleted, recentPicks: state.recentPicks, pickCounts: state.pickCounts, guideSeen: state.guideSeen, setupSeen: state.setupSeen, soundEnabled: state.soundEnabled, stats: state.stats }));
+  const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, completed: state.completed, game: state.game, view: state.view, clawDepleted: state.clawDepleted, recentPicks: state.recentPicks, pickCounts: state.pickCounts, guideSeen: state.guideSeen, setupSeen: state.setupSeen, soundEnabled: state.soundEnabled, stats: state.stats }));
   const getSelected = () => state.tasks.find(t => t.id === state.selectedId);
   let audioContext;
   let breakTimerInterval;
@@ -157,10 +163,31 @@
     els.soundToggle.classList.toggle('muted', !state.soundEnabled);
     els.soundToggle.setAttribute('aria-pressed', String(state.soundEnabled));
     els.soundToggle.setAttribute('aria-label', state.soundEnabled ? 'Mute game sounds' : 'Turn on game sounds');
+    renderView();
     renderRewards();
     renderLists();
-    if (!preserveGame) renderGame();
+    if (!preserveGame && state.view !== 'tasks') renderGame();
     if (!getSelected()) hideResult();
+  }
+
+  function setView(view) {
+    if (!validViews.includes(view)) return;
+    state.view = view;
+    if (view !== 'tasks') state.game = view;
+  }
+
+  function renderView() {
+    const onTasks = state.view === 'tasks';
+    const theme = onTasks ? 'tasks' : state.game;
+    els.arcadeShell.classList.toggle('hidden', onTasks);
+    els.taskZone.classList.toggle('hidden', !onTasks);
+    document.body.classList.remove('theme-balloon', 'theme-claw', 'theme-wheel', 'theme-tasks');
+    document.body.classList.add(`theme-${theme}`);
+    document.querySelectorAll('.section-tab').forEach(tab => {
+      const active = tab.dataset.view === state.view;
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
   }
 
   function localDateKey(date = new Date()) {
@@ -344,20 +371,14 @@
   }
 
   function promptAddTask() {
-    els.taskForm.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+    setView('tasks');
+    render();
     els.taskInput.focus({ preventScroll: true });
-    showToast('Add a task below to load the arcade.');
+    showToast('Add a task here to load the arcade.');
   }
 
   function renderGame() {
     els.gameStage.className = `game-stage ${state.game}-theme`;
-    document.body.classList.remove('theme-balloon', 'theme-claw', 'theme-wheel');
-    document.body.classList.add(`theme-${state.game}`);
-    document.querySelectorAll('.game-tab').forEach(tab => {
-      const active = tab.dataset.game === state.game;
-      tab.classList.toggle('active', active);
-      tab.setAttribute('aria-selected', String(active));
-    });
     const hasTasks = state.tasks.length > 0;
     const playableEmpty = !hasTasks && (state.game === 'balloon' || state.game === 'claw');
     els.emptyGame.classList.toggle('hidden', hasTasks || playableEmpty);
@@ -379,7 +400,7 @@
     save();
     els.siteGuide.classList.add('hidden');
     els.siteGuide.setAttribute('aria-hidden', 'true');
-    els.helpButton.focus();
+    if (state.view !== 'tasks') els.helpButton.focus();
   }
 
   function renderBalloons() {
@@ -994,14 +1015,37 @@
     }
   });
 
-  document.querySelectorAll('.game-tab').forEach(tab => tab.addEventListener('click', () => {
+  document.querySelectorAll('.section-tab').forEach(tab => tab.addEventListener('click', () => {
     if (state.busy) return;
+    const view = tab.dataset.view;
+    if (view === state.view) return;
     releaseHeldClawPrize();
-    state.game = tab.dataset.game;
+    setView(view);
     playSound('click');
     hideResult();
     render();
   }));
+
+  els.emptyAddTaskBtn.addEventListener('click', () => {
+    playSound('click');
+    promptAddTask();
+  });
+
+  $('#skipToTasks').addEventListener('click', event => {
+    event.preventDefault();
+    setView('tasks');
+    render();
+    els.taskInput.focus({ preventScroll: true });
+  });
+
+  document.querySelector('.brand').addEventListener('click', event => {
+    event.preventDefault();
+    if (state.busy) return;
+    releaseHeldClawPrize();
+    setView('tasks');
+    hideResult();
+    render();
+  });
 
   els.taskList.addEventListener('click', event => {
     const button = event.target.closest('[data-action]');
@@ -1064,7 +1108,7 @@
     if (event.key === 'Escape' && !els.siteGuide.classList.contains('hidden')) { closeGuide(); return; }
     if (event.key === 'Escape' && !els.resultCard.classList.contains('hidden')) { hideResult(); return; }
     if (state.game === 'claw' && !['INPUT','SELECT'].includes(document.activeElement.tagName)) {
-      if (event.target.closest?.('.game-tab, .result-card, .task-zone, button')) return;
+      if (event.target.closest?.('.section-tab, .result-card, .task-zone, button')) return;
       if (event.key === 'ArrowLeft') moveClaw(-3);
       if (event.key === 'ArrowRight') moveClaw(3);
       if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); dropClaw(); }

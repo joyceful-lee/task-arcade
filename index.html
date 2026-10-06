@@ -12,8 +12,8 @@
   <title>Taskcade — Pick a task. Play it forward.</title>
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <a class="skip-link" href="#tasks">Skip to task list</a>
+<body class="theme-tasks">
+  <a class="skip-link" href="#tasks" id="skipToTasks">Skip to task list</a>
   <div class="page-glow" aria-hidden="true"></div>
   <header class="topbar">
     <a class="brand" href="#arcade" aria-label="Taskcade home">
@@ -32,24 +32,23 @@
     </div>
   </header>
 
-  <main>
-    <section class="arcade-shell" id="arcade" aria-label="Task arcade">
-      <div class="arcade-heading">
-        <div class="game-tabs" role="tablist" aria-label="Choose an arcade game">
-          <button class="game-tab active" role="tab" aria-selected="true" data-game="balloon"><span>Balloon Darts</span></button>
-          <button class="game-tab" role="tab" aria-selected="false" data-game="claw"><span>Claw Machine</span></button>
-          <button class="game-tab" role="tab" aria-selected="false" data-game="wheel"><span>Prize Wheel</span></button>
-        </div>
-      </div>
+  <nav class="section-bar" role="tablist" aria-label="Choose a section">
+    <button class="section-tab active" role="tab" aria-selected="true" data-view="tasks" type="button"><span>Task List</span></button>
+    <button class="section-tab" role="tab" aria-selected="false" data-view="balloon" type="button"><span>Balloon Darts</span></button>
+    <button class="section-tab" role="tab" aria-selected="false" data-view="claw" type="button"><span>Claw Machine</span></button>
+    <button class="section-tab" role="tab" aria-selected="false" data-view="wheel" type="button"><span>Prize Wheel</span></button>
+  </nav>
 
+  <main>
+    <section class="arcade-shell hidden" id="arcade" aria-label="Task arcade">
       <div class="game-stage" id="gameStage">
         <button class="help-button" id="helpButton" type="button" aria-label="Open Taskcade directions" aria-haspopup="dialog">?</button>
         <div id="gameBoard" class="game-board"></div>
         <div class="empty-game hidden" id="emptyGame">
           <span class="empty-icon">＋</span>
           <h2>Load up the arcade</h2>
-          <p>Add a task below, then come back to play.</p>
-          <a href="#tasks" class="button button-primary">Add a task</a>
+          <p>Add a task in the Task List, then come back to play.</p>
+          <button type="button" class="button button-primary" id="emptyAddTaskBtn">Add a task</button>
         </div>
       </div>
 
