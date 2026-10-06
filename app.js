@@ -48,11 +48,24 @@
 
   const difficultyPoints = { easy: 1, medium: 2, hard: 3 };
   const colors = ['#e83f6f', '#ff8c32', '#10a7a2', '#6f56d9', '#ef5b2a', '#f3bd24', '#168ad2', '#c93996', '#6ebd38', '#ed3f3f'];
+  // Balloon Darts sprites are 1:1 PNGs in assets/balloon-darts/, scaled up in CSS by --px.
+  // Each balloon color has its own balloon-<name>.png and pop-burst-<name>.png; mid is its main
+  // NES palette shade, used for the burst shards.
+  const SPRITE_DIR = 'assets/balloon-darts/';
   const balloonColors = [
-    ['#ff96bd','#f03f83','#a90f4f'], ['#c7a8ff','#845de7','#4c2aa8'], ['#6be5f4','#19afd0','#08718f'],
-    ['#ffe36b','#f5a824','#b45a0b'], ['#8fea77','#42b64d','#1f7131'], ['#ff9672','#f1543e','#a92631'],
-    ['#7ab8ff','#347be1','#174694'], ['#f08bea','#c43db0','#7d206f']
+    { name:'pink', mid:'#e40058' }, { name:'yellow', mid:'#f8b800' }, { name:'green', mid:'#00a800' },
+    { name:'blue', mid:'#0078f8' }, { name:'purple', mid:'#6844fc' }
   ];
+  const spriteUrl = name => `url('${SPRITE_DIR}${name}.png')`;
+  const spriteSizes = {};
+  const spriteSize = name => spriteSizes[name] || null;
+  const scenePixelSize = width => width < 560 ? 4 : 5;
+  // Read each PNG's dimensions so edited sprites can change size without touching CSS.
+  ['balloon-pink', 'balloon-string', 'dart', 'pop-burst-pink'].forEach(name => {
+    const image = new Image();
+    image.onload = () => { spriteSizes[name] = [image.naturalWidth, image.naturalHeight]; applyBalloonDartSprites(); };
+    image.src = `${SPRITE_DIR}${name}.png`;
+  });
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const escapeHtml = (text) => String(text).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, completed: state.completed, game: state.game, view: state.view, clawDepleted: state.clawDepleted, recentPicks: state.recentPicks, pickCounts: state.pickCounts, guideSeen: state.guideSeen, setupSeen: state.setupSeen, soundEnabled: state.soundEnabled, stats: state.stats }));
@@ -425,41 +438,143 @@
     const decorativeCells = [[0,2],[1,2],[2,2],[3,2],[0.5,0.5],[1.5,1.5],[2.5,0.5],[3.5,1.5]];
     const decorativeBalloons = decorativeCells.map(([column, row], i) => {
       const palette = balloonColors[(i + 2) % balloonColors.length];
-      return `<div class="balloon decorative" aria-label="Decorative balloon" data-column="${column}" data-row="${row}" style="--balloon-light:${palette[0]};--balloon-mid:${palette[1]};--balloon-dark:${palette[2]};--drift-x:${(i%2?12:-10)}px;--drift-y:${8+i}px;--drift-back-x:${(i%2?-8:10)}px;--drift-back-y:${-6-i}px"></div>`;
+      return `<div class="balloon decorative" aria-label="Decorative balloon" data-column="${column}" data-row="${row}" data-palette="${(i + 2) % balloonColors.length}" style="--balloon-mid:${palette.mid};--balloon-sprite:${spriteUrl(`balloon-${palette.name}`)};--drift-x:${(i%2?12:-10)}px;--drift-y:${8+i}px;--drift-back-x:${(i%2?-8:10)}px;--drift-back-y:${-6-i}px"></div>`;
     }).join('');
-    els.gameBoard.innerHTML = `<div class="balloon-scene" aria-label="Balloon dart game">
-      <svg class="utah-landscape" viewBox="0 0 1200 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
-        <defs>
-          <linearGradient id="utahSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#287ec5"/><stop offset=".42" stop-color="#f28b4c"/><stop offset=".74" stop-color="#ffc567"/><stop offset="1" stop-color="#df6a3c"/></linearGradient>
-          <linearGradient id="mesaFace" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e76537"/><stop offset=".52" stop-color="#a93d2c"/><stop offset="1" stop-color="#6e2730"/></linearGradient>
-          <linearGradient id="desertFloor" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#d96134"/><stop offset="1" stop-color="#8d3028"/></linearGradient>
-          <filter id="sunGlow"><feGaussianBlur stdDeviation="12"/></filter>
-        </defs>
-        <rect width="1200" height="620" fill="url(#utahSky)"/>
-        <circle cx="935" cy="116" r="67" fill="#ffd56a" opacity=".28" filter="url(#sunGlow)"/>
-        <circle cx="935" cy="116" r="47" fill="#ffe28a"/>
-        <path d="M0 365L90 342l35-74h128l28 65 98 25 75-83h220l58 75 93-18 42-102h143l35 102 175 45v243H0Z" fill="#8b3540" opacity=".55"/>
-        <path d="M0 428V292h82l24-48h220l27 102 88 28v254H0Zm1200 0V264h-72l-29-72H901l-31 151-89 35v250h419Z" fill="#702735"/>
-        <path d="M0 427V318h90l30-51h183l25 111 97 31v219H0Zm1200 0V295h-89l-32-70H927l-30 145-111 38v220h414Z" fill="url(#mesaFace)"/>
-        <path d="M120 267h183l15 64H105Z M927 225h152l18 62H914Z" fill="#f07b3e" opacity=".9"/>
-        <path d="M0 480c175-35 328-17 472 22 165 45 312 40 452-3 95-29 187-36 276-14v135H0Z" fill="url(#desertFloor)"/>
-        <path d="M0 520c206-26 354-2 512 39 194 50 411 4 688-33v94H0Z" fill="#b4462f" opacity=".72"/>
-        <g fill="#173f2b" opacity=".7"><path transform="translate(280 0)" d="M744 451h9v69h-9zM725 468h24v8h-24zM725 454h8v22h-8zM750 460h8v25h-8z"/><path d="M453 476h7v49h-7zM440 487h17v7h-17zM440 475h7v19h-7z"/></g>
-      </svg>
+    els.gameBoard.innerHTML = `<div class="balloon-scene" aria-label="Balloon dart game" style="--px:${scenePixelSize(els.gameBoard.clientWidth)}px">
+      <canvas class="pixel-backdrop" aria-hidden="true"></canvas>
       ${decorativeBalloons}
       ${shown.map((task, i) => {
         const [column,row] = cells[i];
         const palette = balloonColors[i % balloonColors.length];
-        return `<div class="balloon" data-balloon="${task.id}" aria-label="Task balloon" data-column="${column}" data-row="${row}" style="--balloon-light:${palette[0]};--balloon-mid:${palette[1]};--balloon-dark:${palette[2]}"></div>`;
+        return `<div class="balloon" data-balloon="${task.id}" aria-label="Task balloon" data-column="${column}" data-row="${row}" data-palette="${i % balloonColors.length}" style="--balloon-mid:${palette.mid};--balloon-sprite:${spriteUrl(`balloon-${palette.name}`)}"></div>`;
       }).join('')}
       <div class="wood-footer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="aim-line" id="aimLine"></div>
-      <div class="dart-launcher" id="dartLauncher" role="button" tabindex="0" aria-label="Pull back and release the dart"><div class="dart" id="dart" aria-hidden="true"><span class="dart-tip"></span><span class="dart-barrel"></span><span class="dart-shaft"></span><span class="dart-flight"></span></div></div>
-      <div class="dart-hint">Pull the dart down to aim • release to throw</div>
+      <div class="dart-launcher" id="dartLauncher" role="button" tabindex="0" aria-label="Pull back and release the dart"><div class="dart" id="dart" aria-hidden="true"></div></div>
+      <div class="dart-hint">Pull back to aim • release to throw</div>
       <div class="dart-key-controls" aria-label="Dart aim controls"><button type="button" data-dart-angle="-8" aria-label="Aim dart left">◀</button><button type="button" id="fireDart">FIRE</button><button type="button" data-dart-angle="8" aria-label="Aim dart right">▶</button></div>
     </div>`;
+    applyBalloonDartSprites();
+    setupPixelBackdrop();
     setupBalloonMotion();
     setupDartGame();
+  }
+
+  function applyBalloonDartSprites() {
+    const scene = els.gameBoard.querySelector('.balloon-scene');
+    if (!scene) return;
+    scene.style.setProperty('--string-sprite', spriteUrl('balloon-string'));
+    scene.style.setProperty('--dart-sprite', spriteUrl('dart'));
+    // Size each sprite from its PNG so edited assets can change dimensions without touching CSS.
+    [['balloon-pink', 'balloon'], ['balloon-string', 'string'], ['dart', 'dart'], ['pop-burst-pink', 'burst']].forEach(([name, prop]) => {
+      const size = spriteSize(name);
+      if (!size) return;
+      scene.style.setProperty(`--${prop}-w`, size[0]);
+      scene.style.setProperty(`--${prop}-h`, size[1]);
+    });
+  }
+
+  function setupPixelBackdrop() {
+    const scene = els.gameBoard.querySelector('.balloon-scene');
+    const canvas = scene.querySelector('.pixel-backdrop');
+    const observer = new ResizeObserver(() => {
+      if (!scene.isConnected) return observer.disconnect();
+      const px = scenePixelSize(scene.clientWidth);
+      const w = Math.ceil(scene.clientWidth / px), h = Math.ceil(scene.clientHeight / px);
+      scene.style.setProperty('--px', `${px}px`);
+      if (!w || !h || (canvas.width === w && canvas.height === h)) return;
+      canvas.width = w;
+      canvas.height = h;
+      canvas.style.width = `${w * px}px`;
+      canvas.style.height = `${h * px}px`;
+      paintPixelDesert(canvas.getContext('2d'), w, h);
+    });
+    observer.observe(scene);
+  }
+
+  function paintPixelDesert(ctx, w, h) {
+    const rect = (x, y, rw, rh, color) => { ctx.fillStyle = color; ctx.fillRect(Math.round(x), Math.round(y), Math.round(rw), Math.round(rh)); };
+    const dither = (y, color, offset = 0) => { for (let x = (y + offset) % 2; x < w; x += 2) rect(x, y, 1, 1, color); };
+    const horizon = Math.round(h * .66);
+
+    // Sky: flat bands joined by checkerboard dithering instead of gradients.
+    const sky = ['#0058f8', '#0078f8', '#3cbcfc', '#f0d0b0', '#f87858', '#fca044', '#f8d878'];
+    const bandHeight = horizon / sky.length;
+    sky.forEach((color, i) => rect(0, i * bandHeight, w, bandHeight + 1, color));
+    for (let i = 1; i < sky.length; i++) {
+      const edge = Math.round(i * bandHeight);
+      dither(edge - 2, sky[i], 1);
+      dither(edge - 1, sky[i]);
+      dither(edge, sky[i - 1], 1);
+    }
+
+    // Retro sun with scanline gaps across its lower half.
+    const sunX = Math.round(w * .78), sunY = Math.round(h * .2), sunR = Math.max(5, Math.round(Math.min(w, h) * .075));
+    const disc = (r, color, gaps) => {
+      for (let dy = -r; dy <= r; dy++) {
+        if (gaps && dy > r * .15 && dy % 3 === 0) continue;
+        const span = Math.round(Math.sqrt(r * r - dy * dy));
+        rect(sunX - span, sunY + dy, span * 2 + 1, 1, color);
+      }
+    };
+    disc(sunR + 2, '#f8b800', true);
+    disc(sunR, '#fce0a8', true);
+
+    const cloud = (x, y, s) => {
+      rect(x + s, y - s, s * 3, s, '#fcfcfc');
+      rect(x, y, s * 6, s, '#fcfcfc');
+      rect(x + s, y + s, s * 5, s, '#f8a4c0');
+    };
+    cloud(w * .1, h * .14, 2);
+    cloud(w * .44, h * .24, 1);
+    cloud(w * .6, h * .1, 2);
+
+    // Mesas: steep cliffs that flare into a talus slope, with lit caps and strata.
+    const mesa = (x0, x1, top, colors) => {
+      const cliffEnd = top + (horizon - top) * .6;
+      for (let y = Math.round(top); y < horizon; y++) {
+        const flare = y < cliffEnd ? Math.floor((y - top) / 4) : Math.floor((cliffEnd - top) / 4) + (y - cliffEnd);
+        const left = x0 - flare, right = x1 + flare;
+        const face = y - top < 2 ? colors.cap : (y - top) % 6 === 4 ? colors.strata : colors.face;
+        rect(left, y, right - left, 1, face);
+        rect(right - (right - left) * .22, y, (right - left) * .22, 1, y - top < 2 ? colors.face : colors.shade);
+      }
+    };
+    const far = { cap:'#fca044', face:'#e45c10', strata:'#f83800', shade:'#a81000' };
+    const near = { cap:'#f87858', face:'#a81000', strata:'#881400', shade:'#503000' };
+    mesa(w * .1, w * .3, h * .5, far);
+    mesa(w * .44, w * .68, h * .46, far);
+    mesa(-w * .05, w * .2, h * .4, near);
+    mesa(w * .2, w * .3, h * .55, near);
+    mesa(w * .82, w * 1.05, h * .37, near);
+    mesa(w * .7, w * .82, h * .53, near);
+
+    // Desert floor with a dithered band change and scattered pebbles.
+    rect(0, horizon, w, h - horizon, '#e45c10');
+    rect(0, horizon, w, 1, '#fca044');
+    const lower = Math.round(h * .8);
+    rect(0, lower, w, h - lower, '#a81000');
+    dither(lower - 1, '#a81000');
+    dither(lower, '#e45c10', 1);
+    let seed = 7;
+    const random = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    for (let i = 0; i < w * (h - horizon) / 60; i++) {
+      const x = random() * w, y = horizon + 2 + random() * (h - horizon - 2);
+      rect(x, y, 1, 1, '#503000');
+      rect(x, y - 1, 1, 1, '#fca044');
+    }
+
+    const cactus = (x, base) => {
+      rect(x - 1, base, 5, 1, '#503000');
+      rect(x, base - 9, 2, 9, '#007800');
+      rect(x, base - 9, 1, 9, '#58d854');
+      rect(x - 2, base - 5, 2, 1, '#007800');
+      rect(x - 2, base - 8, 1, 3, '#007800');
+      rect(x + 2, base - 4, 2, 1, '#007800');
+      rect(x + 3, base - 7, 1, 3, '#007800');
+    };
+    cactus(w * .36, h * .77);
+    cactus(w * .86, h * .79);
   }
 
   function setupBalloonMotion() {
@@ -503,8 +618,9 @@
       previous = now;
       const width = scene.clientWidth;
       const height = scene.clientHeight;
+      const px = parseFloat(scene.style.getPropertyValue('--px')) || 4;
 
-      movers.forEach((mover, index) => {
+      movers.forEach(mover => {
         const balloonWidth = mover.element.offsetWidth;
         const balloonHeight = mover.element.offsetHeight;
         const minX = 10, maxX = Math.max(minX, width - balloonWidth - 10);
@@ -530,7 +646,8 @@
           mover.y = Math.max(minY, Math.min(maxY, mover.y));
           mover.targetVy = mover.y <= minY ? Math.abs(mover.targetVy) : -Math.abs(mover.targetVy);
         }
-        mover.element.style.transform = `translate3d(${mover.x}px,${mover.y}px,0) rotate(${Math.sin(now / 850 + index) * 2.2}deg)`;
+        // Snap to the pixel grid so sprites move in whole art pixels like an arcade cabinet.
+        mover.element.style.transform = `translate3d(${Math.round(mover.x / px) * px}px,${Math.round(mover.y / px) * px}px,0)`;
       });
 
       for (let i = 0; i < movers.length; i++) {
@@ -571,8 +688,9 @@
     burst.className = 'balloon-burst';
     burst.style.left = `${balloonRect.left - sceneRect.left + balloonRect.width / 2}px`;
     burst.style.top = `${balloonRect.top - sceneRect.top + balloonRect.height / 2}px`;
-    const color = getComputedStyle(balloon).getPropertyValue('--balloon-mid').trim() || '#ff4d8d';
-    burst.style.setProperty('--burst-color', color);
+    const palette = balloonColors[balloon.dataset.palette] || balloonColors[0];
+    burst.style.setProperty('--burst-color', palette.mid);
+    burst.style.setProperty('--burst-sprite', spriteUrl(`pop-burst-${palette.name}`));
     burst.innerHTML = `<b></b>${Array.from({length:12},(_,i)=>`<i style="--burst-angle:${i*30}deg;--burst-distance:-${34 + (i%4)*8}px"></i>`).join('')}`;
     scene.appendChild(burst);
     balloon.classList.add('popped');

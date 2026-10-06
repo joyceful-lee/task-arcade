@@ -173,13 +173,6 @@ h1 { margin-bottom: 0; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: .98; 
 .dart-launcher { position: absolute; z-index: 6; left: 50%; bottom: 78px; width: 92px; height: 92px; transform: translateX(-50%); touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 .dart-launcher:active { cursor: grabbing; }
 .dart { position:absolute; left:50%; top:50%; width:22px; height:92px; transform:translate(-50%,-50%); transform-origin:center; filter:drop-shadow(2px 4px 2px rgba(20,9,5,.42)); pointer-events:none; }
-.dart-tip { position:absolute; z-index:4; left:5px; top:0; width:12px; height:20px; clip-path:polygon(50% 0,100% 76%,72% 100%,28% 100%,0 76%); background:linear-gradient(90deg,#707782 0 17%,#f8fbff 44%,#a9b0ba 68%,#4e5661 100%); box-shadow:inset 2px 0 rgba(255,255,255,.5); }
-.dart-barrel { position:absolute; z-index:3; left:4px; top:17px; width:14px; height:27px; border:1px solid #70451e; border-radius:4px 4px 7px 7px; background:repeating-linear-gradient(135deg,#e2aa46 0 3px,#8d5725 3px 5px,#f1c66e 5px 7px); box-shadow:inset 2px 0 2px rgba(255,255,255,.48),inset -2px 0 2px rgba(57,29,9,.35); }
-.dart-shaft { position:absolute; z-index:2; left:9px; top:41px; width:4px; height:34px; border-radius:2px; background:linear-gradient(90deg,#28150e,#7b4427 46%,#c07a42 57%,#3c2015); box-shadow:1px 0 rgba(255,224,178,.28); }
-.dart-flight { position:absolute; z-index:1; left:1px; top:68px; width:20px; height:22px; filter:drop-shadow(0 2px 0 rgba(51,22,13,.28)); }
-.dart-flight::before, .dart-flight::after { content:""; position:absolute; top:0; width:11px; height:22px; }
-.dart-flight::before { left:0; clip-path:polygon(100% 0,100% 100%,0 72%,12% 20%); background:linear-gradient(135deg,#ffe073,#d99c22); }
-.dart-flight::after { right:0; clip-path:polygon(0 0,0 100%,100% 72%,88% 20%); background:linear-gradient(225deg,#f66f67,#aa2e35); }
 .aim-line { position: absolute; z-index: 5; left: 50%; bottom: 124px; width: 2px; height: 145px; transform-origin: bottom; background: repeating-linear-gradient(to top, rgba(255,249,211,.95) 0 6px, transparent 6px 15px); opacity: 0; pointer-events: none; }
 .balloon-scene.aiming .aim-line { opacity: 1; }
 .balloon-scene.aiming { cursor: grabbing; }
@@ -791,10 +784,9 @@ body.theme-wheel { --line:#e9af78; --muted:#704b5b; background:#fff0c4; }
   .booth-side,.stage-side,.cabinet-side { width:12%; }
 }
 
-/* Open-air Utah dart range. The scene uses inline SVG artwork rather than a
-   generated backdrop, while the moving balloons remain independent targets. */
+/* Open-air Utah dart range; the pixel backdrop and sprites are styled in the
+   Balloon Darts pixel-art section at the end of this file. */
 .balloon-scene { background:#f28b4c; perspective:none; }
-.utah-landscape { position:absolute; z-index:0; inset:0; width:100%; height:100%; display:block; }
 .booth-room { display:none; }
 .wood-footer {
   height:13%;
@@ -1555,3 +1547,75 @@ body.theme-balloon {
 @media (max-width:560px) {
   .setup-task-form { grid-template-columns:1fr; }
 }
+
+/* Balloon Darts: pixel-art arcade pass. Sprites are 1:1 PNGs in assets/balloon-darts/,
+   recolored in app.js and scaled up by --px (one art pixel) so everything shares a single pixel grid. Colors are
+   limited to the NES palette, matching the sprites and backdrop. */
+.balloon-scene { --px:5px; background:#f87858; image-rendering:pixelated; }
+.balloon-scene::after {
+  display:block; z-index:6;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.12) 0 1px,transparent 1px 3px);
+}
+.pixel-backdrop { position:absolute; z-index:0; top:0; left:0; display:block; image-rendering:pixelated; pointer-events:none; }
+.balloon-scene .balloon {
+  width:calc(var(--px) * var(--balloon-w, 14)); height:calc(var(--px) * var(--balloon-h, 18));
+  border:0; border-radius:0; box-shadow:none;
+  background:var(--balloon-sprite) center / 100% 100% no-repeat;
+  image-rendering:pixelated;
+}
+.balloon-scene .balloon::before { display:none; }
+.balloon-scene .balloon::after {
+  top:100%; left:calc(50% - var(--px) * var(--string-w, 3) / 2);
+  width:calc(var(--px) * var(--string-w, 3)); height:calc(var(--px) * var(--string-h, 8));
+  background:var(--string-sprite) top / 100% 100% no-repeat;
+  image-rendering:pixelated;
+}
+.balloon-scene .dart {
+  width:calc(var(--px) * var(--dart-w, 9)); height:calc(var(--px) * var(--dart-h, 21));
+  background:var(--dart-sprite) center / 100% 100% no-repeat;
+  image-rendering:pixelated;
+  filter:drop-shadow(var(--px) var(--px) 0 rgba(0,0,0,.45));
+}
+.balloon-scene .aim-line {
+  width:var(--px); margin-left:calc(var(--px) / -2);
+  background:repeating-linear-gradient(to top,#fcfcfc 0 var(--px),transparent var(--px) calc(var(--px) * 3));
+}
+.balloon-scene .wood-footer {
+  border-top:var(--px) solid #000000;
+  background:
+    linear-gradient(180deg,#fca044 0 var(--px),transparent var(--px)),
+    linear-gradient(180deg,transparent 0 calc(100% - var(--px)),#503000 calc(100% - var(--px))),
+    repeating-linear-gradient(90deg,#881400 0 calc(var(--px) * 17),#503000 calc(var(--px) * 17) calc(var(--px) * 18),#e45c10 calc(var(--px) * 18) calc(var(--px) * 19));
+  box-shadow:none;
+}
+.balloon-scene .dart-hint {
+  bottom:180px; color:#fcfcfc;
+  font-family:"Press Start 2P",monospace; font-size:.5rem; font-weight:400; letter-spacing:0; text-transform:uppercase;
+  text-shadow:2px 2px 0 #000000;
+}
+.balloon-scene .dart-key-controls { gap:12px; }
+.balloon-scene .dart-key-controls button {
+  min-width:52px; height:44px; padding:0 10px;
+  color:#000000; background:#f8b800;
+  border:4px solid #000000; border-radius:0;
+  box-shadow:inset -4px -4px 0 #ac7c00,inset 4px 4px 0 #f8d878,0 4px 0 #000000;
+  font-family:"Press Start 2P",monospace; font-size:.8rem; font-weight:400; letter-spacing:0;
+}
+.balloon-scene .dart-key-controls #fireDart { min-width:112px; font-family:"Press Start 2P",monospace; font-weight:400; letter-spacing:0; color:#fcfcfc; background:#f83800; box-shadow:inset -4px -4px 0 #a81000,inset 4px 4px 0 #f87858,0 4px 0 #000000; }
+.balloon-scene .dart-key-controls button:active { transform:translateY(4px); box-shadow:inset -4px -4px 0 #ac7c00,inset 4px 4px 0 #f8d878; }
+.balloon-scene .dart-key-controls #fireDart:active { box-shadow:inset -4px -4px 0 #a81000,inset 4px 4px 0 #f87858; }
+.balloon-scene .dart-key-controls button:focus-visible { outline:4px solid #fcfcfc; outline-offset:2px; }
+.balloon-scene .balloon-burst b {
+  inset:auto; left:50%; top:50%;
+  width:calc(var(--px) * var(--burst-w, 11)); height:calc(var(--px) * var(--burst-h, 11)); margin:calc(var(--px) * var(--burst-h, 11) / -2) 0 0 calc(var(--px) * var(--burst-w, 11) / -2);
+  border:0; border-radius:0;
+  background:var(--burst-sprite) center / 100% 100% no-repeat;
+  image-rendering:pixelated;
+  animation:pixelBurst .36s steps(4) forwards;
+}
+.balloon-scene .balloon-burst i {
+  width:calc(var(--px) * 2); height:calc(var(--px) * 2); border-radius:0;
+  animation-timing-function:steps(6);
+}
+.balloon-scene .balloon-burst i:nth-of-type(3n) { width:var(--px); height:var(--px); }
+@keyframes pixelBurst { from { transform:scale(.6); } 70% { opacity:1; } to { transform:scale(1.8); opacity:0; } }
