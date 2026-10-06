@@ -185,16 +185,6 @@ h1 { margin-bottom: 0; font-size: clamp(1.8rem, 3.4vw, 3rem); line-height: .98; 
 .joystick i { position:absolute; z-index:1; left:15px; bottom:8px; width:5px; height:27px; border-radius:4px; background:linear-gradient(90deg,#8993b9,#f2f5ff 48%,#626c94); transform:rotate(var(--joystick-tilt)); transform-origin:bottom; box-shadow:1px 0 2px rgba(0,0,0,.3); transition:transform .1s ease; }
 .joystick b { position:absolute; z-index:2; left:8px; top:0; width:20px; height:20px; border:2px solid #ff88b9; border-radius:50%; background:radial-gradient(circle at 35% 27%,#ffbdd7 0 10%,#e83b82 37%,#8e1f5c 75%); box-shadow:0 3px 0 #52183e; transform:translateX(var(--joystick-nudge)); transition:transform .1s ease; }
 
-.game-stage.wheel-theme { border-color: #f8d447; box-shadow: 0 18px 50px rgba(77,19,56,.35), inset 0 0 0 1px rgba(255,255,255,.08); }
-.wheel-scene { position: absolute; inset: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; justify-items: center; gap: 34px; padding: 16px 9%; background: repeating-linear-gradient(90deg,#741c4f 0 82px,#a52859 82px 164px); }
-.wheel-wrap { position: relative; width: min(292px, 66vw); aspect-ratio: 1; }
-.wheel-pointer { position: absolute; z-index: 5; right: -13px; top: calc(50% - 17px); width: 0; height: 0; border-top: 17px solid transparent; border-bottom: 17px solid transparent; border-right: 34px solid var(--yellow); filter: drop-shadow(2px 3px 0 #9b6810); }
-.wheel { width:100%; height:100%; border:10px solid #fff3c4; border-radius:50%; position:relative; box-shadow:inset 0 0 0 5px rgba(82,24,48,.26),0 0 0 8px #6c2247,0 0 0 11px #d6a42d,0 18px 40px rgba(69,17,39,.34); transition:transform 3.2s cubic-bezier(.12,.72,.14,1); }
-.wheel::after { content:""; position:absolute; inset:40%; border-radius:50%; background:radial-gradient(circle at 35% 28%,#fff5a6 0 12%,#ffd348 13% 50%,#d89a15 75%); border:6px solid #fff4c1; box-shadow:inset -5px -5px 8px rgba(128,70,5,.25),0 3px 10px rgba(0,0,0,.35); }
-.wheel-label { position:absolute; width:104px; min-height:42px; display:grid; place-items:center; padding:3px 5px; text-align:center; font-size:.69rem; line-height:1.08; font-weight:950; color:white; text-shadow:none; background:transparent; overflow:hidden; }
-.wheel-panel { grid-column: 2; }
-.spin-button { font-size: 1.05rem; min-width: 170px; }
-
 .task-zone {
   max-width: none;
   width: 100%;
@@ -474,9 +464,6 @@ body.theme-tasks { --line:#d4daf5; --muted:#65709b; background:#eef1fb; }
   .section-tab { min-height:48px; padding:10px 6px; font-size:.74rem; white-space:normal; }
   .game-stage { height:600px; min-height:0; }
   .game-board { height: 100%; min-height: 0; }
-  .wheel-scene { grid-template-columns: 1fr; grid-template-rows: 1fr auto; gap: 10px; padding: 22px; }
-  .wheel-wrap { width: min(310px, 66vw); }
-  .wheel-panel { grid-column: 1; justify-self: center; text-align: center; }
   .task-form { grid-template-columns: 1fr 160px; }
   .task-input-wrap { grid-column: 1 / -1; }
   .lists-grid { grid-template-columns: 1fr; }
@@ -573,38 +560,19 @@ body.theme-wheel { --line:#e9af78; --muted:#704b5b; background:#fff0c4; }
 .theme-wheel .task-zone { background-color:#fff0c4; background-image:repeating-linear-gradient(135deg,rgba(15,85,164,.045) 0 12px,transparent 12px 28px); }
 .theme-wheel .quick-task-form { background-color:#d52d4d; border-color:#ffd84a; box-shadow:inset 0 0 0 2px #88152f,0 7px 0 rgba(70,12,35,.22); }
 .theme-wheel .game-tab.active, .theme-wheel .section-tab.active { background:#ffd23f; }
-.wheel-scene { grid-template-columns:minmax(0,1fr) 190px; gap:30px; padding:54px 6% 22px; background:repeating-linear-gradient(90deg,#0d5eb4 0 78px,#d92b4d 78px 156px); isolation:isolate; }
-.wheel-scene::before { z-index:0; background:linear-gradient(180deg,rgba(6,28,82,.05),transparent 65%,rgba(5,21,65,.42) 100%); }
-.wheel-scene::after { content:""; position:absolute; z-index:0; left:0; right:0; bottom:0; height:20%; background:repeating-linear-gradient(90deg,#d69537 0 70px,#f3bd53 71px 74px); border-top:6px solid #783c20; }
 .carnival-canopy { position:absolute; z-index:2; left:-3%; right:-3%; top:-25px; height:84px; background:repeating-linear-gradient(105deg,#ffe067 0 48px,#fff4ba 49px 96px,#e52f4f 97px 145px); border-bottom:7px solid #8b1d36; box-shadow:0 7px 13px rgba(26,10,34,.28); transform:skewY(-1deg); }
 .stage-bulbs { position:absolute; z-index:3; top:46px; left:4%; right:4%; display:flex; justify-content:space-between; }
 .stage-bulbs i { width:11px; height:11px; border-radius:50%; background:#fff0a4; box-shadow:0 0 10px #fff1a9; }
-.wheel-wrap { z-index:4; width:min(430px,65vw); }
-.wheel { border-width:12px; box-shadow:inset 0 0 0 5px rgba(60,20,47,.22),0 0 0 9px #133873,0 0 0 13px #f2be2c,0 20px 38px rgba(18,19,62,.38); }
-.wheel-pegs { position:absolute; z-index:4; inset:-7px; border-radius:50%; pointer-events:none; }
-.wheel-pegs i { position:absolute; left:calc(50% - 4px); top:calc(50% - 4px); width:8px; height:8px; border-radius:50%; background:#fff6b5; box-shadow:0 0 0 2px #d69212,0 0 7px #fff0a2; transform:rotate(var(--peg)) translateY(calc(-50% - 205px)); transform-origin:4px 4px; }
-.wheel-pointer { right:-18px; border-top-width:21px; border-bottom-width:21px; border-right-width:42px; transform-origin:right center; }
-.wheel-pointer.ticking { animation:pointerTick .12s ease-out; }
-.wheel-label { width:118px; min-height:48px; font-size:.73rem; line-height:1.08; }
-.wheel-panel { z-index:4; align-self:center; }
-.spin-button { min-width:184px; }
 
 @keyframes modalFade { from { opacity:0; } }
 @keyframes balloonRoam { 0%,100% { transform:translate(0,0) rotate(-2deg); } 35% { transform:translate(var(--drift-x),var(--drift-y)) rotate(1.5deg); } 70% { transform:translate(var(--drift-back-x),var(--drift-back-y)) rotate(-1deg); } }
-@keyframes pointerTick { 45% { transform:rotate(13deg); } }
 
 @media (max-width:920px) {
   .game-stage { height:620px; }
-  .wheel-scene { grid-template-columns:1fr; grid-template-rows:1fr auto; padding:64px 18px 24px; }
-  .wheel-wrap { width:min(390px,72vw); }
-  .wheel-pegs i { transform:rotate(var(--peg)) translateY(calc(-50% - min(187px,34vw))); }
-  .wheel-panel { grid-column:1; }
 }
 @media (max-width:560px) {
   .game-stage { height:610px; min-height:610px; }
   .balloon { width:58px; height:70px; left:clamp(7px,var(--balloon-left),calc(100% - 65px)); }
-  .wheel-wrap { width:min(330px,76vw); }
-  .wheel-pegs i { transform:rotate(var(--peg)) translateY(calc(-50% - min(158px,36vw))); }
   .result-modal { padding:12px; }
   .result-modal .result-card { padding:24px 18px 20px; }
 }
@@ -653,30 +621,6 @@ body.theme-wheel { --line:#e9af78; --muted:#704b5b; background:#fff0c4; }
 .balloon-burst i { position:absolute; left:7px; top:7px; width:7px; height:14px; border-radius:80% 20% 70% 30%; background:var(--burst-color,#ff5f65); transform-origin:3px 3px; animation:burstShard .48s cubic-bezier(.15,.7,.25,1) forwards; }
 .balloon-burst i:nth-of-type(3n) { filter:brightness(1.25); width:5px; }
 
-.wheel-scene { background:#6e1642; perspective:1000px; }
-.wheel-scene::before,
-.wheel-scene::after { display:none; }
-.stage-room { position:absolute; z-index:0; inset:0; overflow:hidden; pointer-events:none; }
-.stage-room > i { position:absolute; display:block; }
-.stage-back {
-  inset:5% 8% 19%;
-  background:repeating-linear-gradient(90deg,#ff1493 0 52px,#ffe600 52px 104px,#00c9b7 104px 156px,#9b59e6 156px 208px);
-  border:7px solid #732346;
-  box-shadow:inset 0 0 48px rgba(17,8,66,.5);
-}
-.stage-back::after { content:""; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 24%,rgba(255,233,115,.24),transparent 53%); }
-.stage-side { top:0; bottom:9%; width:15%; background:repeating-linear-gradient(0deg,#611442 0 64px,#891c50 65px 68px); filter:brightness(.74); }
-.stage-side.left { left:0; clip-path:polygon(0 0,100% 8%,75% 91%,0 100%); }
-.stage-side.right { right:0; clip-path:polygon(0 8%,100% 0,100% 100%,25% 91%); }
-.stage-floor {
-  left:0; right:0; bottom:0; height:26%; z-index:1;
-  clip-path:polygon(11% 0,89% 0,100% 100%,0 100%);
-  background:repeating-linear-gradient(90deg,#c17a2f 0 76px,#edb653 77px 82px,#7d421f 83px 87px);
-  box-shadow:inset 0 24px 34px rgba(74,25,40,.36);
-}
-.wheel-wrap::before { content:""; position:absolute; z-index:-1; left:calc(50% - 16px); top:50%; bottom:-85px; width:32px; background:linear-gradient(90deg,#662447,#f2b334 40% 60%,#662447); border-radius:7px; box-shadow:8px 8px 15px rgba(28,10,41,.35); }
-.wheel-wrap::after { content:""; position:absolute; z-index:-1; left:20%; right:20%; bottom:-96px; height:30px; border-radius:50%; background:linear-gradient(#ffd253,#9b4328); box-shadow:0 12px 18px rgba(29,8,36,.35); }
-
 @keyframes burstRing { to { transform:scale(2.6); opacity:0; } }
 @keyframes burstShard { to { transform:rotate(var(--burst-angle)) translateY(var(--burst-distance)) rotate(110deg); opacity:0; } }
 @keyframes prizeSlipSmooth {
@@ -690,7 +634,7 @@ body.theme-wheel { --line:#e9af78; --muted:#704b5b; background:#fff0c4; }
 
 @media (max-width:560px) {
   .balloon { left:0; top:0; }
-  .booth-back,.stage-back { left:7%; right:7%; }
+  .booth-back { left:7%; right:7%; }
 }
 
 /* Box-room perspective: the ceiling runs to the top edge while every plane
@@ -707,21 +651,9 @@ body.theme-wheel { --line:#e9af78; --muted:#704b5b; background:#fff0c4; }
 .booth-side.right { clip-path:polygon(0 15%,100% 0,100% 100%,0 79%); }
 .booth-floor { height:23%; clip-path:polygon(12% 0,88% 0,100% 100%,0 100%); }
 
-.stage-back { inset:14% 11% 22%; }
-.stage-ceiling {
-  z-index:1; left:0; right:0; top:0; height:17%;
-  clip-path:polygon(0 0,100% 0,89% 100%,11% 100%);
-  background:repeating-linear-gradient(105deg,#f7d857 0 62px,#f5edbd 63px 125px,#d92d51 126px 188px);
-  box-shadow:inset 0 -22px 28px rgba(72,12,51,.42);
-}
-.stage-side { top:0; bottom:0; width:13%; }
-.stage-side.left { clip-path:polygon(0 0,100% 14%,100% 78%,0 100%); }
-.stage-side.right { clip-path:polygon(0 14%,100% 0,100% 100%,0 78%); }
-.stage-floor { height:24%; clip-path:polygon(11% 0,89% 0,100% 100%,0 100%); }
-
 @media (max-width:560px) {
-  .booth-back,.stage-back { left:10%; right:10%; }
-  .booth-side,.stage-side { width:12%; }
+  .booth-back { left:10%; right:10%; }
+  .booth-side { width:12%; }
 }
 
 /* Open-air Utah dart range; the pixel backdrop and sprites are styled in the
@@ -746,24 +678,8 @@ body.theme-wheel { --line:#e9af78; --muted:#704b5b; background:#fff0c4; }
 #fireDart { font-family:Rockwell,"Roboto Slab",Georgia,serif; font-weight:900; letter-spacing:.045em; }
 
 /* Every room plane now shares the rear-wall corner coordinates exactly. */
-
-.stage-back { inset:14% 11% 22%; }
-.stage-ceiling {
-  height:14%;
-  clip-path:polygon(0 0,100% 0,89% 100%,11% 100%);
-  background:linear-gradient(180deg,#70163f,#4a1038);
-  box-shadow:inset 0 -15px 24px rgba(38,5,28,.48);
-}
-.stage-side { top:0; bottom:0; width:11%; }
-.stage-side.left { clip-path:polygon(0 0,100% 14%,100% 78%,0 100%); }
-.stage-side.right { clip-path:polygon(0 14%,100% 0,100% 100%,0 78%); }
-.stage-floor { height:22%; clip-path:polygon(11% 0,89% 0,100% 100%,0 100%); }
 .carnival-canopy,
 .stage-bulbs { display:none; }
-
-.wheel-scene { grid-template-columns:minmax(0,1fr) 150px; gap:0; padding:24px 5% 14px; }
-.wheel-panel { transform:translateX(-72px); }
-.wheel { transition-duration:3.2s; }
 
 .task-name,
 .empty-list {
@@ -773,65 +689,7 @@ body.theme-wheel { --line:#e9af78; --muted:#704b5b; background:#fff0c4; }
   letter-spacing:.01em;
 }
 
-@media (max-width:920px) {
-  .wheel-panel { transform:none; }
-}
-@media (max-width:560px) {
-  .stage-back { left:11%; right:11%; }
-  .stage-side { width:11%; }
-}
-
 /* Final material and depth polish. */
-.stage-side {
-  filter:none;
-  background:
-    linear-gradient(90deg,#320625 0%,#74103d 13%,#bd2858 28%,#6b0d38 43%,#c33460 58%,#73103d 75%,#2a0523 100%);
-  box-shadow:inset -12px 0 18px rgba(28,2,22,.34);
-}
-.stage-side.right {
-  background:linear-gradient(90deg,#2a0523 0%,#73103d 25%,#c33460 42%,#6b0d38 57%,#bd2858 72%,#74103d 87%,#320625 100%);
-  box-shadow:inset 12px 0 18px rgba(28,2,22,.34);
-}
-.stage-side::before {
-  content:""; position:absolute; top:0; bottom:0; width:100%;
-  background:linear-gradient(90deg,rgba(255,255,255,.14),transparent 18% 78%,rgba(20,0,15,.26));
-}
-.stage-side::after {
-  content:""; position:absolute; top:55%; left:12%; right:12%; height:10px;
-  border-radius:50%; background:linear-gradient(#ffe98d,#c9851f 48%,#784114 52%,#efbe45);
-  box-shadow:0 3px 8px rgba(34,4,22,.42);
-}
-.stage-floor {
-  background:
-    radial-gradient(ellipse at 50% 5%,rgba(255,244,159,.48),transparent 55%),
-    linear-gradient(180deg,#f5ca58 0%,#e8ac3e 43%,#c66c28 100%);
-  box-shadow:inset 0 24px 34px rgba(95,34,18,.24),inset 18px 0 24px rgba(102,35,24,.16),inset -18px 0 24px rgba(102,35,24,.16);
-}
-.stage-floor::before {
-  content:""; position:absolute; inset:0;
-  background:linear-gradient(to bottom,
-    transparent 0 10%,rgba(117,58,24,.54) 10.4% 11%,transparent 11.4% 24%,
-    rgba(117,58,24,.5) 24.4% 25.2%,transparent 25.6% 42%,
-    rgba(117,58,24,.46) 42.4% 43.4%,transparent 43.8% 64%,
-    rgba(117,58,24,.42) 64.4% 65.8%,transparent 66.2% 88%,
-    rgba(117,58,24,.38) 88.4% 90%,transparent 90.4%);
-}
-.stage-back {
-  background:
-    radial-gradient(circle at 22% 18%,rgba(102,232,255,.34),transparent 25%),
-    radial-gradient(circle at 78% 70%,rgba(255,211,66,.24),transparent 29%),
-    repeating-linear-gradient(135deg,rgba(255,255,255,.055) 0 2px,transparent 2px 11px),
-    repeating-linear-gradient(90deg,#ff1493 0 52px,#ffe600 52px 104px,#00c9b7 104px 156px,#9b59e6 156px 208px);
-  background-blend-mode:screen,screen,soft-light,normal;
-  border-color:#8d2550;
-  box-shadow:inset 0 0 58px rgba(26,5,67,.48),inset 0 0 0 3px rgba(255,216,78,.13);
-}
-.stage-back::before {
-  content:""; position:absolute; inset:0;
-  background-image:radial-gradient(circle,rgba(255,255,255,.16) 0 1px,transparent 1.5px);
-  background-size:17px 17px; opacity:.36; mix-blend-mode:overlay;
-}
-.stage-back::after { background:radial-gradient(ellipse at 50% 18%,rgba(255,239,139,.29),transparent 56%); }
 
 .balloon {
   border:2px solid color-mix(in srgb,var(--balloon-dark) 84%,#24101b);
@@ -843,82 +701,6 @@ body.theme-wheel { --line:#e9af78; --muted:#704b5b; background:#fff0c4; }
 .sound-toggle svg { display:block; margin:0; transform:translateX(-.5px); }
 
 /* Richer carnival staging and tactile arcade materials. */
-.stage-back {
-  background:
-    radial-gradient(circle at 22% 18%,rgba(255,255,255,.38),transparent 27%),
-    radial-gradient(circle at 78% 72%,rgba(117,24,43,.18),transparent 31%),
-    repeating-linear-gradient(135deg,rgba(112,42,42,.06) 0 2px,transparent 2px 11px),
-    repeating-linear-gradient(90deg,#f4e1bd 0 68px,#a92f43 68px 136px);
-  background-blend-mode:screen,multiply,soft-light,normal;
-  box-shadow:inset 0 0 62px rgba(78,20,38,.3),inset 0 0 0 3px rgba(255,239,198,.24);
-}
-.stage-room::before,
-.stage-room::after {
-  content:"";
-  position:absolute;
-  z-index:7;
-  top:-2%;
-  bottom:-2%;
-  width:19%;
-  pointer-events:none;
-  background:
-    linear-gradient(150deg,transparent 0 34%,rgba(255,117,142,.2) 42%,rgba(73,5,34,.26) 50%,transparent 58%),
-    linear-gradient(28deg,transparent 0 36%,rgba(255,128,151,.2) 44%,rgba(70,4,32,.3) 51%,transparent 59%),
-    linear-gradient(90deg,#2d031c 0%,#89113f 15%,#d72f5c 30%,#6f0c35 46%,#bd2451 62%,#651031 80%,#220218 100%);
-  box-shadow:6px 2px 0 rgba(35,2,26,.22);
-}
-.stage-room::before {
-  left:-1%;
-  clip-path:polygon(0 0,100% 0,86% 10%,68% 26%,54% 44%,48% 50%,46% 52%,48% 54%,54% 60%,68% 76%,86% 100%,0 100%);
-  border-radius:0 70% 55% 0 / 0 22% 30% 0;
-}
-.stage-room::after {
-  right:-1%;
-  clip-path:polygon(0 0,100% 0,100% 100%,14% 100%,32% 76%,46% 60%,52% 54%,54% 52%,52% 50%,46% 44%,32% 26%,14% 10%);
-  border-radius:70% 0 0 55% / 22% 0 0 30%;
-  box-shadow:-6px 2px 0 rgba(35,2,26,.22);
-}
-.stage-side {
-  z-index:8;
-  clip-path:none !important;
-  background:transparent;
-  box-shadow:none;
-  filter:none;
-  pointer-events:none;
-}
-.stage-side::before { display:none; }
-.stage-side::after {
-  display:block;
-  top:50.5%;
-  left:14%;
-  right:5%;
-  height:11px;
-  border:1px solid #7e4b18;
-  border-radius:8px;
-  background:repeating-linear-gradient(118deg,#6c3c12 0 3px,#d39a42 3px 6px,#f0c56f 6px 8px,#8a561e 8px 11px);
-  box-shadow:inset 0 2px rgba(255,236,172,.48),0 3px 5px rgba(44,8,25,.46);
-  transform:rotate(-9deg);
-}
-.stage-side.right::after { left:5%; right:14%; transform:rotate(9deg); }
-
-.wheel-scene {
-  grid-template-columns:auto auto;
-  justify-content:center;
-  gap:50px;
-}
-.wheel-panel { transform:none; justify-self:start; }
-.wheel-wrap::after {
-  left:17%;
-  right:17%;
-  bottom:-100px;
-  height:34px;
-  border:3px solid #7b293f;
-  border-radius:50% 50% 42% 42%;
-  background:
-    radial-gradient(ellipse at 50% 18%,rgba(255,255,210,.95) 0 7%,rgba(255,240,133,.28) 24%,transparent 42%),
-    linear-gradient(180deg,#ffe36e 0%,#e6a62e 46%,#9c472c 100%);
-  box-shadow:inset 0 4px 5px rgba(255,255,255,.45),inset 0 -7px 8px rgba(92,28,36,.28),0 5px 0 #5f2440,0 13px 20px rgba(29,8,36,.4);
-}
 
 .balloon::before { z-index:2; }
 .balloon::after {
@@ -930,84 +712,7 @@ body.theme-wheel { --line:#e9af78; --muted:#704b5b; background:#fff0c4; }
 
 .confetti { top:-20px; width:10px; height:16px; border-radius:0; animation:confetti 1.6s ease-in forwards; pointer-events:none; }
 
-@media (max-width:920px) {
-  .wheel-scene { grid-template-columns:1fr; grid-template-rows:1fr auto; gap:18px; justify-content:stretch; }
-  .wheel-panel { grid-column:1; justify-self:center; }
-}
-
 /* Draped carnival curtains inspired by a traditional proscenium. */
-.stage-room::before,
-.stage-room::after {
-  top:0;
-  bottom:0;
-  width:20%;
-  background:
-    linear-gradient(151deg,transparent 0 34%,rgba(255,255,255,.2) 42%,transparent 51%),
-    linear-gradient(29deg,transparent 0 36%,rgba(86,6,27,.28) 45%,transparent 54%),
-    repeating-linear-gradient(88deg,#a80f2d 0 23%,#f6ead1 23% 40%,#c61d3a 40% 64%,#fff4dc 64% 77%,#8f0b27 77% 100%);
-  box-shadow:8px 3px 13px rgba(46,4,24,.36);
-}
-.stage-room::before {
-  left:0;
-  clip-path:polygon(0 0,100% 0,84% 13%,67% 30%,51% 45%,42% 51%,45% 56%,57% 72%,59% 100%,0 100%);
-  border-radius:0 56% 20% 0 / 0 18% 12% 0;
-}
-.stage-room::after {
-  right:0;
-  clip-path:polygon(0 0,100% 0,100% 100%,41% 100%,43% 72%,55% 56%,58% 51%,49% 45%,33% 30%,16% 13%);
-  border-radius:56% 0 0 20% / 18% 0 0 12%;
-  box-shadow:-8px 3px 13px rgba(46,4,24,.36);
-}
-.stage-ceiling {
-  z-index:9;
-  left:24%;
-  right:24%;
-  top:-3%;
-  height:21%;
-  clip-path:none;
-  border:0;
-  border-bottom:9px solid #f8ecd3;
-  border-radius:0 0 50% 50% / 0 0 72% 72%;
-  background:
-    radial-gradient(ellipse at 50% 0,rgba(255,255,255,.18),transparent 54%),
-    repeating-linear-gradient(88deg,#a60d2b 0 24%,#cb1c3b 24% 43%,#8b0925 43% 60%);
-  box-shadow:0 9px 0 #a70f2e,0 15px 0 #f8ecd3,0 18px 14px rgba(63,5,29,.32);
-}
-.stage-ceiling::before,
-.stage-ceiling::after {
-  content:"";
-  position:absolute;
-  top:-1%;
-  width:66%;
-  height:72%;
-  border-bottom:7px solid #f8ecd3;
-  border-radius:0 0 50% 50% / 0 0 75% 75%;
-  background:linear-gradient(180deg,#940923,#c91c3a 54%,#9b0b27);
-  box-shadow:0 7px 0 #a70f2e,0 12px 0 #f8ecd3,0 15px 10px rgba(63,5,29,.25);
-}
-.stage-ceiling::before { right:91%; transform:rotate(2deg); }
-.stage-ceiling::after { left:91%; transform:rotate(-2deg); }
-.stage-side::after {
-  top:50.5%;
-  height:10px;
-  border:2px solid #8b590d;
-  background:repeating-linear-gradient(115deg,#7a470b 0 3px,#e2aa26 3px 6px,#ffd964 6px 8px,#9c6811 8px 11px);
-  box-shadow:inset 0 2px rgba(255,246,178,.55),0 3px 5px rgba(44,8,25,.5);
-}
-.stage-side::before {
-  display:block;
-  content:"";
-  position:absolute;
-  z-index:2;
-  top:52%;
-  width:7px;
-  height:54px;
-  border-radius:5px 5px 55% 55%;
-  background:linear-gradient(90deg,#87500d,#f1b92d 45% 65%,#9b630f);
-  box-shadow:0 4px 0 2px #d49116,0 8px 0 1px #7d4709,0 3px 7px rgba(52,12,21,.38);
-}
-.stage-side.left::before { right:17%; transform:rotate(-8deg); }
-.stage-side.right::before { left:17%; transform:rotate(8deg); }
 
 /* A cooler woven midway treatment replaces the brown balloon-theme shell. */
 body.theme-balloon { --line:#9bbdb8; --muted:#496c69; background:#e7f0df; }
@@ -1052,28 +757,8 @@ body.theme-balloon { --line:#66b7ae; --muted:#286c68; background:#dff2e8; }
 .balloon::after { top:calc(100% + 9px); }
 
 /* Side-only curtains: diagonal fabric above the rope, straight tails below. */
-.stage-room > .stage-ceiling { display:none; }
-.stage-room::before,
-.stage-room::after {
-  background-repeat:no-repeat;
-  background-size:100% 53%,100% 47%;
-  background-position:0 0,0 100%;
-}
-.stage-room::before {
-  background-image:
-    repeating-linear-gradient(104deg,#930b28 0 24px,#f7ecd4 24px 41px,#c91d3b 41px 69px,#fff5df 69px 82px,#a00d2c 82px 108px),
-    repeating-linear-gradient(90deg,#9f0d2b 0 24%,#f7ecd4 24% 40%,#c91d3b 40% 65%,#fff5df 65% 78%,#8f0a27 78% 100%);
-}
-.stage-room::after {
-  background-image:
-    repeating-linear-gradient(76deg,#930b28 0 24px,#f7ecd4 24px 41px,#c91d3b 41px 69px,#fff5df 69px 82px,#a00d2c 82px 108px),
-    repeating-linear-gradient(90deg,#8f0a27 0 22%,#fff5df 22% 35%,#c91d3b 35% 60%,#f7ecd4 60% 76%,#9f0d2b 76% 100%);
-}
 
 /* Prize Wheel curtains removed; retain only the dimensional stage room. */
-.stage-room::before,
-.stage-room::after,
-.stage-room > .stage-side { display:none; }
 
 /* Game-page atmosphere refresh. */
 body.theme-balloon {
@@ -1122,33 +807,6 @@ body.theme-balloon {
 }
 
 /* With the curtains gone, carry the carnival stripes to the screen roof. */
-.stage-back {
-  inset:0 11% 22%;
-  border-top:0;
-  border-left:7px solid #732346;
-  border-right:7px solid #732346;
-}
-.stage-room > .stage-side {
-  display:block;
-  top:0;
-  bottom:0;
-  width:11%;
-  z-index:1;
-  background:linear-gradient(90deg,#4a0d2c 0%,#7d173c 56%,#a92f43 100%);
-  box-shadow:inset -13px 0 20px rgba(40,3,25,.34);
-}
-.stage-room > .stage-side.left {
-  left:0;
-  clip-path:polygon(0 0,100% 0,100% 78%,0 100%) !important;
-}
-.stage-room > .stage-side.right {
-  right:0;
-  clip-path:polygon(0 0,100% 0,100% 100%,0 78%) !important;
-  background:linear-gradient(90deg,#a92f43 0%,#7d173c 44%,#4a0d2c 100%);
-  box-shadow:inset 13px 0 20px rgba(40,3,25,.34);
-}
-.stage-room > .stage-side::before,
-.stage-room > .stage-side::after { display:none; }
 
 /* Balloon Darts: uninterrupted desert horizon and softer sandstone task paper. */
 .wood-footer {
@@ -1229,23 +887,6 @@ body.theme-balloon {
 }
 
 /* Sequential marquee glow around the Prize Wheel rim. */
-.wheel-pegs i {
-  background:#fff8c7;
-  animation:wheelBulbGlow 1.3s ease-in-out infinite;
-  animation-delay:var(--bulb-delay,0s);
-}
-@keyframes wheelBulbGlow {
-  0%,46%,100% {
-    background:#ffe77a;
-    box-shadow:0 0 0 2px #b87514,0 0 5px rgba(255,214,73,.48);
-    filter:brightness(.86);
-  }
-  18% {
-    background:#fffde8;
-    box-shadow:0 0 0 2px #f2bb2f,0 0 9px #fff3a2,0 0 18px #ffd84f,0 0 29px rgba(255,191,40,.78);
-    filter:brightness(1.28);
-  }
-}
 
 /* Every modal close control shares one centered, top-right treatment. */
 .result-close,
@@ -1482,6 +1123,30 @@ body.theme-balloon {
 /* Claw Machine screen: the physics canvas is drawn 1:1 and scaled up by --px. */
 .claw-scene { --px:4px; position:absolute; inset:0; overflow:hidden; background:#0000bc; }
 .claw-canvas { position:absolute; top:0; left:0; display:block; image-rendering:pixelated; }
+/* Prize Wheel screen: the pixel wheel canvas plus an HTML prize board listing the wedges.
+   The board sits beside the wheel on wide screens and below it on phones. */
+.wheel-scene { --px:4px; position:absolute; inset:0; overflow:hidden; background:#4428bc; }
+.wheel-canvas { position:absolute; top:0; left:0; display:block; image-rendering:pixelated; }
+.prize-board {
+  position:absolute; z-index:2; margin:0; padding:10px 8px; list-style:none;
+  display:flex; flex-direction:column; justify-content:center; gap:4px;
+  background:#000000; border:4px solid #f8b800; box-shadow:0 0 0 3px #000000,inset 0 0 0 2px #881400;
+  font-family:"Press Start 2P",monospace; font-size:.55rem; line-height:1.5; color:#bcbcbc;
+}
+.wheel-scene.board-side .prize-board { top:9%; bottom:20%; right:12%; width:40%; }
+.wheel-scene.board-below .prize-board { left:10%; right:10%; top:var(--board-top,58%); bottom:4%; padding:6px; gap:1px; font-size:.42rem; }
+.wheel-scene.board-below .prize-board li { padding:1px 4px; gap:6px; }
+.wheel-scene.board-below .prize-swatch { height:1.6em; border-width:1px; }
+.prize-board li { display:flex; align-items:center; gap:8px; min-width:0; padding:3px 6px; }
+.prize-swatch {
+  flex:0 0 auto; display:grid; place-items:center; width:2.2em; height:1.8em;
+  color:#fcfcfc; background:var(--wedge); border:2px solid #000000; box-shadow:0 0 0 1px #7c7c7c;
+  text-shadow:1px 1px 0 #000000;
+}
+.prize-name { min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.prize-board li.lit { color:#000000; background:#f8d878; }
+.prize-board li.winner { color:#000000; background:#fcfcfc; animation:prizeWinner .32s steps(1) 3; }
+@keyframes prizeWinner { 50% { background:#f8b800; } }
 @media (max-width:560px) {
   .arcade-cabinet { padding:8px 8px 0; border-radius:16px 16px 10px 10px; box-shadow:inset 0 2px 0 rgba(255,255,255,.08),inset 4px 0 0 #3a3a42,inset -4px 0 0 #3a3a42,0 18px 36px rgba(0,0,0,.4); }
   .cabinet-marquee { --marquee-px:3px; }

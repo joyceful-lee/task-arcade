@@ -146,6 +146,15 @@
       ],
       // Chords per bar: Am F C G | Am F G Am.
       bass: [45,52,45,52, 41,48,41,48, 48,55,48,55, 43,50,43,50, 45,52,45,52, 41,48,41,48, 43,50,43,50, 45,52,45,null]
+    },
+    wheel: {
+      bpm: 150,
+      lead: [
+        79,null,76,79,84,null,79,76, 77,null,81,77,74,null,77,81, 79,null,76,79,84,86,88,84, 86,null,83,79,74,null,null,null,
+        76,79,84,79,76,79,84,88, 77,81,84,81,77,81,86,89, 88,86,84,81,79,77,76,74, 72,null,79,null,72,null,null,null
+      ],
+      // Chords per bar: C F C G | C F G C. A bouncy game-show vamp.
+      bass: [48,55,52,55, 41,48,45,48, 48,55,52,55, 43,50,47,50, 48,55,52,55, 41,48,45,48, 43,50,47,50, 48,55,48,null]
     }
   };
   const music = { track: null, timer: 0, step: 0, nextTime: 0, gain: null };
@@ -1395,59 +1404,224 @@
     claw.open = true;
   }
 
+  // Prize Wheel: the wheel is rendered pixel by pixel onto a low-res canvas each frame (so it
+  // stays crisp at any angle), scaled up by --px like the other games. Task names live on an
+  // HTML prize board beside it. Sprites are in assets/prize-wheel/; angles are degrees,
+  // measured clockwise from the pointer at the top.
+  const WHEEL_DIR = 'assets/prize-wheel/';
+  const wheelColors = ['#f83800', '#f8b800', '#00a800', '#0078f8', '#6844fc', '#d800cc', '#e45c10', '#58d854', '#3cbcfc', '#e40058'];
+  const wheelImages = Object.fromEntries(['pointer', 'pointer-tick'].map(name => {
+    const image = new Image();
+    image.src = `${WHEEL_DIR}${name}.png`;
+    return [name, image];
+  }));
+  const pixelDigits = {
+    0: ['111', '101', '101', '101', '111'], 1: ['010', '110', '010', '010', '111'], 2: ['111', '001', '111', '100', '111'],
+    3: ['111', '001', '111', '001', '111'], 4: ['101', '101', '111', '001', '001'], 5: ['111', '100', '111', '001', '111'],
+    6: ['111', '100', '111', '101', '111'], 7: ['111', '001', '001', '001', '001'], 8: ['111', '101', '111', '101', '111'],
+    9: ['111', '101', '111', '001', '111']
+  };
+  const hexRgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  let wheelWorld = null;
+
   function renderWheel() {
+    els.gameStage.classList.add('has-cabinet');
     const shown = state.tasks.slice(0, 10);
-    const step = 360 / shown.length;
-    const gradient = shown.map((_, i) => `${colors[i % colors.length]} ${i * step}deg ${(i + 1) * step}deg`).join(',');
-    els.gameBoard.innerHTML = `<div class="wheel-scene" aria-label="Prize wheel game">
-      <div class="stage-room" aria-hidden="true"><i class="stage-back"></i><i class="stage-ceiling"></i><i class="stage-side left"></i><i class="stage-side right"></i><i class="stage-floor"></i></div>
-      <div class="wheel-wrap"><div class="wheel-pointer" id="wheelPointer"></div><div class="wheel" id="wheel" style="background:conic-gradient(${gradient});transform:rotate(${state.wheelRotation}deg)"><div class="wheel-pegs" aria-hidden="true">${Array.from({length:20},(_,i)=>`<i style="--peg:${i*18}deg;--bulb-delay:${(-i*.065).toFixed(3)}s"></i>`).join('')}</div>
-        ${shown.map((t,i) => { const a=i*step+step/2, rad=a*Math.PI/180, left=50+29*Math.sin(rad), top=50-29*Math.cos(rad); let rotation=a-90; if(rotation>90) rotation-=180; if(rotation<-90) rotation+=180; return `<span class="wheel-label" style="left:${left}%;top:${top}%;transform:translate(-50%,-50%) rotate(${rotation}deg)">${escapeHtml(t.text)}</span>`; }).join('')}
-      </div></div>
-      <div class="wheel-panel"><button class="button button-primary spin-button" id="spinWheel">SPIN THE WHEEL</button></div>
+    const screen = `<div class="wheel-scene" aria-label="Prize wheel game" style="--px:${scenePixelSize(els.gameBoard.clientWidth)}px">
+      <canvas class="wheel-canvas" aria-hidden="true"></canvas>
+      <ol class="prize-board" aria-label="Prizes on the wheel">${shown.map((task, i) => `<li data-wedge="${i}"><span class="prize-swatch" style="--wedge:${wheelColors[i % wheelColors.length]}">${i + 1}</span><span class="prize-name">${escapeHtml(task.text)}</span></li>`).join('')}</ol>
     </div>`;
+    els.gameBoard.innerHTML = arcadeCabinet({
+      title: 'Prize Wheel',
+      marquee: `url('${WHEEL_DIR}marquee.png')`,
+      screen,
+      controls: `<div class="cabinet-controls" aria-label="Wheel controls"><button type="button" class="arcade-button fire" id="spinWheel">SPIN</button></div>`,
+      instructions: 'Press spin • land on your next mission'
+    });
+    setupWheelWorld(shown);
     $('#spinWheel').addEventListener('click', spinWheel);
   }
 
+  function setupWheelWorld(shown) {
+    const scene = els.gameBoard.querySelector('.wheel-scene');
+    const canvas = scene.querySelector('.wheel-canvas');
+    const world = { canvas, scene, shown, step: 360 / shown.length, w: 0, h: 0, spin: null, tickFrames: 0, litWedge: -1 };
+    wheelWorld = world;
+    const observer = new ResizeObserver(() => {
+      if (!scene.isConnected) { observer.disconnect(); return; }
+      const px = scenePixelSize(scene.clientWidth);
+      const w = Math.ceil(scene.clientWidth / px), h = Math.ceil(scene.clientHeight / px);
+      if (!w || !h || (world.w === w && world.h === h)) return;
+      scene.style.setProperty('--px', `${px}px`);
+      canvas.width = w; canvas.height = h;
+      canvas.style.width = `${w * px}px`; canvas.style.height = `${h * px}px`;
+      // Wide screens put the board beside the wheel; tall (phone) screens stack it below.
+      const side = w > h * 1.3;
+      scene.classList.toggle('board-side', side);
+      scene.classList.toggle('board-below', !side);
+      if (side) Object.assign(world, { w, h, cx: Math.round(w * .3), cy: Math.round(h * .47), r: Math.min(Math.round(h * .4), Math.round(w * .27)) });
+      else {
+        // Stacked: a smaller wheel at the top, with the board starting just below its rim.
+        const r = Math.min(Math.round(w * .36), Math.round(h * .22));
+        Object.assign(world, { w, h, cx: Math.round(w / 2), cy: r + 10, r });
+        scene.style.setProperty('--board-top', `${(r * 2 + 16) * px}px`);
+      }
+      world.backdrop = paintWheelBackdrop(world);
+      world.wheel = document.createElement('canvas');
+      world.wheel.width = world.wheel.height = world.r * 2 + 2;
+    });
+    observer.observe(scene);
+    const loop = now => {
+      if (!canvas.isConnected || wheelWorld !== world) return;
+      if (world.backdrop) { updateWheelSpin(world, now); drawWheelWorld(world, now); }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  }
+
+  const wedgeUnderPointer = world => Math.floor((((-state.wheelRotation) % 360 + 360) % 360) / world.step) % world.shown.length;
+
   function spinWheel() {
-    if (state.busy) return;
+    const world = wheelWorld;
+    if (state.busy || !world?.canvas.isConnected) return;
     state.busy = true;
-    const shown = state.tasks.slice(0, 10);
-    const chosen = randomTask(shown);
-    const index = shown.findIndex(task => task.id === chosen.id);
-    const step = 360 / shown.length;
-    const selectedCenter = index * step + step / 2;
-    const currentAngle = ((state.wheelRotation % 360) + 360) % 360;
-    const targetAngle = ((90 - selectedCenter) % 360 + 360) % 360;
-    const alignmentTurn = (targetAngle - currentAngle + 360) % 360;
-    state.wheelRotation += 1440 + alignmentTurn;
-    $('#wheel').style.transform = `rotate(${state.wheelRotation}deg)`;
-    const spinDuration = reducedMotion ? 250 : 3200;
-    const pointer = $('#wheelPointer');
-    let tickFrame = 0;
-    if (!reducedMotion) {
-      let lastAngle = null;
-      let pegTravel = 0;
-      const trackPegs = () => {
-        const matrix = new DOMMatrixReadOnly(getComputedStyle($('#wheel')).transform);
-        const angle = (Math.atan2(matrix.b, matrix.a) * 180 / Math.PI + 360) % 360;
-        if (lastAngle !== null) {
-          const delta = (angle - lastAngle + 360) % 360;
-          if (delta < 90) pegTravel += delta;
-          if (pegTravel >= 18) {
-            pegTravel %= 18;
-            pointer.classList.remove('ticking');
-            void pointer.offsetWidth;
-            pointer.classList.add('ticking');
-            playSound('tick');
-          }
-        }
-        lastAngle = angle;
-        tickFrame = requestAnimationFrame(trackPegs);
-      };
-      tickFrame = requestAnimationFrame(trackPegs);
+    const chosen = randomTask(world.shown);
+    const index = world.shown.findIndex(task => task.id === chosen.id);
+    // Land somewhere inside the chosen wedge (not dead center), after at least four full turns.
+    const landing = index * world.step + world.step * (.2 + Math.random() * .6);
+    const from = state.wheelRotation;
+    const alignment = ((-landing - from) % 360 + 360) % 360;
+    world.scene.querySelector('.prize-board li.winner')?.classList.remove('winner');
+    world.spin = { from, to: from + 1440 + alignment, start: performance.now(), duration: reducedMotion ? 250 : 3800, index, lastPeg: null };
+    playSound('click');
+  }
+
+  function updateWheelSpin(world, now) {
+    const spin = world.spin;
+    if (!spin) return;
+    const t = Math.min(1, (now - spin.start) / spin.duration);
+    const eased = 1 - Math.pow(1 - t, 4);
+    state.wheelRotation = spin.from + (spin.to - spin.from) * eased;
+    // Pegs sit at every wedge edge and wedge middle; each one passed flicks the pointer.
+    const pegStep = world.step / 2;
+    const peg = Math.floor(state.wheelRotation / pegStep);
+    if (spin.lastPeg !== null && peg !== spin.lastPeg) { world.tickFrames = 5; playSound('tick'); }
+    spin.lastPeg = peg;
+    if (t < 1) return;
+    world.spin = null;
+    world.scene.querySelector(`[data-wedge="${spin.index}"]`)?.classList.add('winner');
+    playSound('win');
+    setTimeout(() => {
+      state.busy = false;
+      if (world.canvas.isConnected) setSelected(world.shown[spin.index].id);
+    }, reducedMotion ? 100 : 650);
+  }
+
+  function drawWheelWorld(world, now) {
+    const ctx = world.canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(world.backdrop, 0, 0);
+    paintWheel(world, now);
+    ctx.drawImage(world.wheel, world.cx - world.r - 1, world.cy - world.r - 1);
+    const pointer = wheelImages[world.tickFrames > 0 ? 'pointer-tick' : 'pointer'];
+    if (world.tickFrames > 0) world.tickFrames--;
+    if (pointer.complete && pointer.naturalWidth) ctx.drawImage(pointer, world.cx - Math.floor(pointer.naturalWidth / 2), world.cy - world.r - 6);
+    const lit = wedgeUnderPointer(world);
+    if (lit !== world.litWedge) {
+      world.scene.querySelector('.prize-board li.lit')?.classList.remove('lit');
+      world.scene.querySelector(`[data-wedge="${lit}"]`)?.classList.add('lit');
+      world.litWedge = lit;
     }
-    setTimeout(() => { cancelAnimationFrame(tickFrame); pointer.classList.remove('ticking'); playSound('win'); setSelected(shown[index].id); state.busy = false; }, spinDuration);
+  }
+
+  // Renders the wheel at its current angle: colored wedges with black dividers, upright pixel
+  // numbers, a gold rim with chasing bulbs, and a center hub.
+  function paintWheel(world, now) {
+    const { r, step, shown } = world;
+    const size = r * 2 + 2, c = r + 1;
+    const ctx = world.wheel.getContext('2d');
+    const image = ctx.createImageData(size, size);
+    const data = image.data;
+    const wedgeRgb = wheelColors.map(hexRgb);
+    const rotation = state.wheelRotation;
+    const bulbPhase = Math.floor(now / 380) % 2;
+    const set = (x, y, [red, green, blue]) => {
+      if (x < 0 || y < 0 || x >= size || y >= size) return;
+      const i = (y * size + x) * 4;
+      data[i] = red; data[i + 1] = green; data[i + 2] = blue; data[i + 3] = 255;
+    };
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const dx = x + .5 - c, dy = y + .5 - c, d = Math.hypot(dx, dy);
+        if (d > r) continue;
+        const screenAngle = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+        const wheelAngle = ((screenAngle - rotation) % 360 + 360) % 360;
+        if (d > r - 1) { set(x, y, [0, 0, 0]); continue; }
+        if (d > r - 4) {
+          // Gold rim with a bulb at every peg; alternate bulbs light up in turn.
+          const pegAngle = step / 2;
+          const nearest = Math.round(wheelAngle / pegAngle);
+          const offset = Math.abs(wheelAngle - nearest * pegAngle) * Math.PI / 180 * (r - 2.5);
+          if (offset < 1.1 && d > r - 3.6 && d < r - 1.4) set(x, y, (nearest + bulbPhase) % 2 ? [252, 252, 252] : [248, 216, 120]);
+          else set(x, y, d > r - 2 ? [172, 124, 0] : [248, 184, 0]);
+          continue;
+        }
+        if (d > r - 5) { set(x, y, [0, 0, 0]); continue; }
+        if (d < 5) { set(x, y, d < 2 ? [252, 252, 252] : d < 4 ? [248, 184, 0] : [0, 0, 0]); continue; }
+        // Black divider lines along wedge edges (only when there's more than one wedge).
+        const edge = Math.min(wheelAngle % step, step - wheelAngle % step) * Math.PI / 180 * d;
+        if (shown.length > 1 && edge < .6) { set(x, y, [0, 0, 0]); continue; }
+        set(x, y, wedgeRgb[Math.floor(wheelAngle / step) % wheelColors.length]);
+      }
+    }
+    // Upright wedge numbers, white with a black outline, riding around with the wheel.
+    shown.forEach((_, i) => {
+      const angle = (i * step + step / 2 + rotation) * Math.PI / 180;
+      const label = String(i + 1);
+      const glyphW = label.length * 4 - 1;
+      const gx = Math.round(c + Math.sin(angle) * (r * .62) - glyphW / 2), gy = Math.round(c - Math.cos(angle) * (r * .62) - 2.5);
+      const pixels = [];
+      [...label].forEach((digit, n) => pixelDigits[digit].forEach((row, py) => [...row].forEach((bit, pxx) => { if (bit === '1') pixels.push([gx + n * 4 + pxx, gy + py]); })));
+      pixels.forEach(([x, y]) => { for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) set(x + ox, y + oy, [0, 0, 0]); });
+      pixels.forEach(([x, y]) => set(x, y, [252, 252, 252]));
+    });
+    ctx.putImageData(image, 0, 0);
+  }
+
+  // Game-show stage in NES colors: curtains, a spotlight floor, and the wheel's stand.
+  function paintWheelBackdrop(world) {
+    const { w, h, cx, cy, r } = world;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    const rect = (x, y, rw, rh, color) => { ctx.fillStyle = color; ctx.fillRect(x, y, rw, rh); };
+    const floorY = Math.round(h * .84);
+    rect(0, 0, w, h, '#4428bc');
+    for (let x = 0; x < w; x += 2) for (let y = (x / 2) % 4; y < floorY; y += 4) rect(x, y, 1, 1, '#0000bc');
+    // Curtain folds down both sides.
+    const curtain = Math.round(w * .09);
+    for (let x = 0; x < curtain; x++) {
+      const color = x % 6 < 2 ? '#a80020' : x % 6 < 4 ? '#e40058' : '#881400';
+      rect(x, 0, 1, floorY, color); rect(w - 1 - x, 0, 1, floorY, color);
+    }
+    rect(0, 0, w, 4, '#a80020'); rect(0, 4, w, 1, '#f8b800');
+    for (let x = 3; x < w; x += 8) rect(x, 4, 1, 1, '#fcfcfc');
+    // Stage floor with a spotlight under the wheel.
+    rect(0, floorY, w, h - floorY, '#881400');
+    rect(0, floorY, w, 1, '#f8b800');
+    for (let y = floorY + 2; y < h; y += 3) rect(0, y, w, 1, '#503000');
+    for (let y = floorY + 1; y < h; y++) {
+      const spread = Math.round(r * .9 + (y - floorY) * 2);
+      for (let x = cx - spread; x < cx + spread; x++) if ((x + y) % 2 === 0) rect(x, y, 1, 1, '#e45c10');
+    }
+    // Stand: a post from behind the hub down to a base on the floor.
+    rect(cx - 2, cy, 5, floorY - cy, '#000000');
+    rect(cx - 1, cy, 3, floorY - cy, '#7c7c7c');
+    rect(cx - 1, cy, 1, floorY - cy, '#bcbcbc');
+    rect(cx - 9, floorY - 3, 19, 4, '#000000');
+    rect(cx - 8, floorY - 2, 17, 2, '#bcbcbc');
+    rect(cx - 8, floorY - 2, 17, 1, '#fcfcfc');
+    return canvas;
   }
 
   function updateCompletionStats() {
