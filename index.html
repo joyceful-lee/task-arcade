@@ -8,7 +8,7 @@
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d133d'/%3E%3Cpath d='M18 15h28v34H18z' fill='%23ffca3a'/%3E%3Cpath d='m24 33 6 6 11-15' fill='none' stroke='%230d133d' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Doppio+One&family=Playpen+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Taskcade — Pick a task. Play it forward.</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -53,21 +53,6 @@
         </div>
       </div>
 
-      <form class="task-form quick-task-form" id="taskForm">
-        <label class="field task-input-wrap">
-          <input id="taskInput" maxlength="90" placeholder="Describe your task…" aria-label="Task description" required autocomplete="off">
-        </label>
-        <label class="field">
-          <select id="difficultyInput" aria-label="Task difficulty" required>
-            <option value="" selected disabled>Choose difficulty</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-        </label>
-        <button class="button button-primary add-button" type="submit"><span>＋</span> Add task</button>
-      </form>
-
       <div class="result-modal hidden" id="resultCard" role="dialog" aria-modal="true" aria-labelledby="resultTask" aria-hidden="true" tabindex="-1">
         <div class="result-card">
           <button class="result-close" id="closeResult" type="button" aria-label="Close chosen task"></button>
@@ -91,6 +76,21 @@
 
       <div class="reward-strip" id="rewardStrip" aria-label="Progress rewards"></div>
 
+      <form class="task-form" id="taskForm">
+        <label class="field task-input-wrap">
+          <input id="taskInput" maxlength="90" placeholder="Describe your task…" aria-label="Task description" required autocomplete="off">
+        </label>
+        <label class="field">
+          <select id="difficultyInput" aria-label="Task difficulty" required>
+            <option value="" selected disabled>Choose difficulty</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+        <button class="button button-primary add-button" type="submit"><span>＋</span> Add task</button>
+      </form>
+
       <div class="lists-grid">
         <div class="list-card">
           <div class="list-title">
@@ -109,6 +109,35 @@
       </div>
     </section>
   </main>
+
+  <div class="setup-modal hidden" id="setupModal" role="dialog" aria-modal="true" aria-labelledby="setupTitle" aria-hidden="true">
+    <div class="setup-modal-card list-card">
+      <div class="list-title">
+        <h3 id="setupTitle">Tasks</h3>
+        <span id="setupBadge" class="count-badge">0</span>
+      </div>
+      <p class="setup-lead">Add a few things you need to do before you can play. Every task becomes a prize in the arcade.</p>
+      <form class="task-form setup-task-form" id="setupTaskForm">
+        <label class="field task-input-wrap">
+          <input id="setupTaskInput" maxlength="90" placeholder="Describe your task…" aria-label="Task description" required autocomplete="off">
+        </label>
+        <label class="field">
+          <select id="setupDifficultyInput" aria-label="Task difficulty" required>
+            <option value="" selected disabled>Choose difficulty</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+        <button class="button button-primary add-button" type="submit"><span>＋</span> Add task</button>
+      </form>
+      <div class="setup-list-toolbar">
+        <button class="text-button" id="suggestTasksBtn" type="button">Suggest some tasks</button>
+      </div>
+      <div id="setupTaskList" class="task-list"></div>
+      <button class="button button-primary setup-finish" id="finishSetupBtn" type="button" disabled>Start playing</button>
+    </div>
+  </div>
 
   <div class="site-guide hidden" id="siteGuide" role="dialog" aria-modal="true" aria-labelledby="siteGuideTitle" aria-hidden="true">
     <div class="site-guide-card">

@@ -1,15 +1,15 @@
 (() => {
   const STORAGE_KEY = 'taskcade-state-v1';
-  const starterTasks = [
-    { id: crypto.randomUUID(), text: 'Review notes for 20 minutes', difficulty: 'easy' },
-    { id: crypto.randomUUID(), text: 'Finish one homework problem set', difficulty: 'medium' },
-    { id: crypto.randomUUID(), text: 'Start the project outline', difficulty: 'hard' },
-    { id: crypto.randomUUID(), text: 'Pack tomorrow’s school bag', difficulty: 'easy' }
+  const starterTaskIdeas = [
+    { text: 'Review notes for 20 minutes', difficulty: 'easy' },
+    { text: 'Finish one homework problem set', difficulty: 'medium' },
+    { text: 'Start the project outline', difficulty: 'hard' },
+    { text: 'Pack tomorrow’s school bag', difficulty: 'easy' }
   ];
 
   const saved = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; } })();
   const state = {
-    tasks: Array.isArray(saved?.tasks) ? saved.tasks : starterTasks,
+    tasks: Array.isArray(saved?.tasks) ? saved.tasks : [],
     completed: Array.isArray(saved?.completed) ? saved.completed : [],
     game: saved?.game || 'balloon',
     selectedId: null,
@@ -20,6 +20,7 @@
     recentPicks: Array.isArray(saved?.recentPicks) ? saved.recentPicks : [],
     pickCounts: saved?.pickCounts || {},
     guideSeen: saved?.guideSeen === true,
+    setupSeen: saved?.setupSeen === true || saved !== null,
     soundEnabled: saved?.soundEnabled !== false,
     stats: saved?.stats || { total: Array.isArray(saved?.completed) ? saved.completed.length : 0, streak: 0, lastDate: null, dailyBreaksClaimed: 0, breakEndsAt: null }
   };
@@ -33,7 +34,10 @@
     doneCount: $('#doneCount'), readyBadge: $('#readyBadge'), toast: $('#toast'),
     streakCount: $('#streakCount'), soundToggle: $('#soundToggle'), rewardStrip: $('#rewardStrip'),
     siteGuide: $('#siteGuide'), helpButton: $('#helpButton'), closeGuide: $('#closeGuide'), dismissGuide: $('#dismissGuide'), closeResult: $('#closeResult'),
-    breakTimer: $('#breakTimer'), breakCountdown: $('#breakCountdown'), endBreakBtn: $('#endBreakBtn')
+    breakTimer: $('#breakTimer'), breakCountdown: $('#breakCountdown'), endBreakBtn: $('#endBreakBtn'),
+    setupModal: $('#setupModal'), setupTaskForm: $('#setupTaskForm'), setupTaskInput: $('#setupTaskInput'),
+    setupDifficultyInput: $('#setupDifficultyInput'), setupTaskList: $('#setupTaskList'),
+    setupBadge: $('#setupBadge'), suggestTasksBtn: $('#suggestTasksBtn'), finishSetupBtn: $('#finishSetupBtn')
   };
 
   const difficultyPoints = { easy: 1, medium: 2, hard: 3 };
@@ -45,7 +49,7 @@
   ];
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const escapeHtml = (text) => String(text).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, completed: state.completed, game: state.game, clawDepleted: state.clawDepleted, recentPicks: state.recentPicks, pickCounts: state.pickCounts, guideSeen: state.guideSeen, soundEnabled: state.soundEnabled, stats: state.stats }));
+  const save = () => localStorage.setItem(STORAGE_KEY, JSON.stringify({ tasks: state.tasks, completed: state.completed, game: state.game, clawDepleted: state.clawDepleted, recentPicks: state.recentPicks, pickCounts: state.pickCounts, guideSeen: state.guideSeen, setupSeen: state.setupSeen, soundEnabled: state.soundEnabled, stats: state.stats }));
   const getSelected = () => state.tasks.find(t => t.id === state.selectedId);
   let audioContext;
   let breakTimerInterval;
@@ -287,6 +291,56 @@
 
     els.taskList.classList.toggle('is-scrollable', state.tasks.length > 7);
     els.completedList.classList.toggle('is-scrollable', state.completed.length > 7);
+    renderSetupList();
+  }
+
+  function renderSetupList() {
+    els.setupBadge.textContent = state.tasks.length;
+    els.finishSetupBtn.disabled = state.tasks.length === 0;
+    els.setupTaskList.innerHTML = state.tasks.length ? state.tasks.map(task => `
+      <div class="task-item" data-id="${task.id}">
+        <span class="task-check" aria-hidden="true"></span>
+        <div><div class="task-name">${escapeHtml(task.text)}</div><div class="task-meta"><span class="mini-difficulty">${task.difficulty}</span></div></div>
+        <div class="task-actions">
+          <button class="icon-button" data-setup-action="delete" title="Delete task" aria-label="Delete ${escapeHtml(task.text)}">×</button>
+        </div>
+      </div>`).join('') : '<div class="empty-list">No tasks yet. Add one above, or suggest some.</div>';
+    els.setupTaskList.classList.toggle('is-scrollable', state.tasks.length > 7);
+  }
+
+  function openSetup() {
+    els.setupModal.classList.remove('hidden');
+    els.setupModal.setAttribute('aria-hidden', 'false');
+    renderSetupList();
+    els.setupTaskInput.focus({ preventScroll: true });
+  }
+
+  function closeSetup() {
+    state.setupSeen = true;
+    save();
+    els.setupModal.classList.add('hidden');
+    els.setupModal.setAttribute('aria-hidden', 'true');
+  }
+
+  function addTask(text, difficulty) {
+    const clean = String(text).trim().slice(0, 90);
+    if (!clean || !['easy', 'medium', 'hard'].includes(difficulty)) return null;
+    const task = { id: crypto.randomUUID(), text: clean, difficulty };
+    state.tasks.push(task);
+    replenishClawPrizes(3);
+    return task;
+  }
+
+  function suggestStarterTasks() {
+    const existing = new Set(state.tasks.map(task => task.text.toLowerCase()));
+    let added = 0;
+    starterTaskIdeas.forEach(idea => {
+      if (existing.has(idea.text.toLowerCase())) return;
+      state.tasks.push({ id: crypto.randomUUID(), text: idea.text, difficulty: idea.difficulty });
+      added += 1;
+    });
+    if (added) replenishClawPrizes(3);
+    return added;
   }
 
   function promptAddTask() {
@@ -891,15 +945,53 @@
   els.taskForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const text = els.taskInput.value.trim();
-    if (!text) return;
-    state.tasks.push({ id: crypto.randomUUID(), text, difficulty: els.difficultyInput.value });
-    replenishClawPrizes(3);
+    if (!text || !addTask(text, els.difficultyInput.value)) return;
     els.taskInput.value = '';
     els.difficultyInput.value = '';
     render();
     playSound('add');
     showToast('Task added to every game.');
     els.taskInput.focus();
+  });
+
+  els.setupTaskForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const text = els.setupTaskInput.value.trim();
+    if (!text || !addTask(text, els.setupDifficultyInput.value)) return;
+    els.setupTaskInput.value = '';
+    els.setupDifficultyInput.value = '';
+    render();
+    playSound('add');
+    els.setupTaskInput.focus();
+  });
+
+  els.suggestTasksBtn.addEventListener('click', () => {
+    const added = suggestStarterTasks();
+    if (!added) {
+      showToast('Suggested tasks are already on your list.');
+      return;
+    }
+    render();
+    playSound('add');
+    showToast('Suggested tasks added.');
+  });
+
+  els.finishSetupBtn.addEventListener('click', () => {
+    if (!state.tasks.length) return;
+    playSound('click');
+    closeSetup();
+    if (!state.guideSeen) openGuide();
+    else showToast('Arcade loaded. Pick a game!');
+  });
+
+  els.setupTaskList.addEventListener('click', event => {
+    const button = event.target.closest('[data-setup-action]');
+    if (!button) return;
+    const id = button.closest('.task-item').dataset.id;
+    if (button.dataset.setupAction === 'delete') {
+      state.tasks = state.tasks.filter(task => task.id !== id);
+      render();
+    }
   });
 
   document.querySelectorAll('.game-tab').forEach(tab => tab.addEventListener('click', () => {
@@ -965,6 +1057,10 @@
   els.siteGuide.addEventListener('click', event => { if (event.target === els.siteGuide) closeGuide(); });
 
   document.addEventListener('keydown', event => {
+    if (!els.setupModal.classList.contains('hidden')) {
+      if (event.key === 'Escape') event.preventDefault();
+      return;
+    }
     if (event.key === 'Escape' && !els.siteGuide.classList.contains('hidden')) { closeGuide(); return; }
     if (event.key === 'Escape' && !els.resultCard.classList.contains('hidden')) { hideResult(); return; }
     if (state.game === 'claw' && !['INPUT','SELECT'].includes(document.activeElement.tagName)) {
@@ -980,14 +1076,17 @@
     if (!context?.registerTool) return;
     const tools = [
       { name: 'list_tasks', title: 'List arcade tasks', description: 'List active and completed Taskcade tasks.', inputSchema: { type:'object', properties:{}, additionalProperties:false }, annotations: { readOnlyHint:true, untrustedContentHint:true }, execute: () => ({ active: state.tasks, completed: state.completed }) },
-      { name: 'add_task', title: 'Add an arcade task', description: 'Add a task with a difficulty to the Taskcade arcade.', inputSchema: { type:'object', properties:{ text:{type:'string',minLength:1,maxLength:90}, difficulty:{type:'string',enum:['easy','medium','hard']} }, required:['text','difficulty'], additionalProperties:false }, annotations: { readOnlyHint:false, untrustedContentHint:true }, execute: ({text,difficulty}) => { const clean=String(text).trim(); if(!clean || !['easy','medium','hard'].includes(difficulty)) throw new Error('Invalid task'); const task={id:crypto.randomUUID(),text:clean.slice(0,90),difficulty}; state.tasks.push(task); render(); return task; } },
+      { name: 'add_task', title: 'Add an arcade task', description: 'Add a task with a difficulty to the Taskcade arcade.', inputSchema: { type:'object', properties:{ text:{type:'string',minLength:1,maxLength:90}, difficulty:{type:'string',enum:['easy','medium','hard']} }, required:['text','difficulty'], additionalProperties:false }, annotations: { readOnlyHint:false, untrustedContentHint:true }, execute: ({text,difficulty}) => { const task=addTask(text,difficulty); if(!task) throw new Error('Invalid task'); render(); return task; } },
       { name: 'complete_task', title: 'Complete an arcade task', description: 'Mark one active Taskcade task complete by its id.', inputSchema: { type:'object', properties:{ id:{type:'string'} }, required:['id'], additionalProperties:false }, annotations: { readOnlyHint:false, untrustedContentHint:false }, execute: ({id}) => { const task=state.tasks.find(t=>t.id===id); if(!task) throw new Error('Task not found'); completeTask(id); return {id,status:'completed'}; } }
     ];
     tools.forEach(tool => { try { Promise.resolve(context.registerTool(tool)).catch(() => {}); } catch {} });
   }
 
   render();
-  if (state.stats.breakEndsAt > Date.now()) openBreakTimer();
-  if (!state.guideSeen) openGuide();
+  if (!state.setupSeen) openSetup();
+  else {
+    if (state.stats.breakEndsAt > Date.now()) openBreakTimer();
+    if (!state.guideSeen) openGuide();
+  }
   registerWebMCP();
 })();
